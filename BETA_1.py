@@ -34,7 +34,7 @@ def t(cz_text, en_text):
     return cz_text if is_cz else en_text
 
 # =============================================================================
-# CSS ÚPRAVY (dynamický text na tlačítku podle jazyka)
+# CSS ÚPRAVY
 # =============================================================================
 btn_subtext = "pro nově zvolené parametry" if is_cz else "for newly selected parameters"
 
@@ -1301,7 +1301,7 @@ with tab7:
     st.caption(t("Graf zrekonstruován z původní předlohy. **Zdroj:** MARTINI, William. *Stirling engine design manual*, 2004. Přetisk vydání z roku 1983. Honolulu: University press of the Pacific, ISBN: 1-4102-1604-7.", "Graph reconstructed from original reference. **Source:** MARTINI, William. *Stirling engine design manual*, 2004. Reprint of the 1983 edition. Honolulu: University press of the Pacific, ISBN: 1-4102-1604-7."))
 
 # =============================================================================
-# PATIČKA: AUTORSTVÍ, LICENCE A CITACE DLE ISO 690 (VERZE BEZ HVĚZDIČEK)
+# PATIČKA: AUTORSTVÍ, LICENCE A CITACE DLE ISO 690
 # =============================================================================
 st.markdown("---")
 col_f1, col_f2 = st.columns([3, 2])
@@ -1330,6 +1330,7 @@ with col_f2:
     st.code(t(citation_cz, citation_en), language="text")
     st.caption(t("Kliknutím do pole výše a Ctrl+C citaci zkopírujete.", "Click inside the box above and press Ctrl+C to copy the citation."))
     
+
 
 
 
