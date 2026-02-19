@@ -1329,5 +1329,6 @@ with col_f2:
     
     st.code(t(citation_cz, citation_en), language="text")
     st.caption(t("Kliknutím do pole výše a Ctrl+C citaci zkopírujete.", "Click inside the box above and press Ctrl+C to copy the citation."))
-    st.caption(t("Kliknutím do pole výše a Ctrl+C citaci zkopírujete.", "Click inside the box above and press Ctrl+C to copy the citation."))
+    
+
 
