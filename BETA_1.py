@@ -24,39 +24,58 @@ else:
 # --- KONFIGURACE STRÁNKY ---
 st.set_page_config(page_title="Stirling Beta Model", layout="wide")
 
-# CSS úpravy
-st.markdown("""
+# =============================================================================
+# JAZYKOVÝ PŘEPÍNAČ A FUNKCE PŘEKLADU
+# =============================================================================
+lang_choice = st.sidebar.radio("Lang", ["CZ", "EN"], horizontal=True, label_visibility="collapsed")
+is_cz = lang_choice == "CZ"
+
+def t(cz_text, en_text):
+    return cz_text if is_cz else en_text
+
+# =============================================================================
+# CSS ÚPRAVY (dynamický text na tlačítku podle jazyka)
+# =============================================================================
+btn_subtext = "pro nově zvolené parametry" if is_cz else "for newly selected parameters"
+
+st.markdown(f"""
 <style>
-    .block-container {
+    .block-container {{
         padding-top: 1.5rem; 
         padding-bottom: 2rem;
-    }
-    div[data-testid="stExpander"] div[role="button"] p {font-size: 1.05rem; font-weight: 600;}
+    }}
+    
+    /* Posunutí obsahu levého panelu nahoru */
+    [data-testid="stSidebarUserContent"] {{
+        padding-top: 0rem !important;
+    }}
+
+    div[data-testid="stExpander"] div[role="button"] p {{font-size: 1.05rem; font-weight: 600;}}
     
     /* Zamezení blikání při real-time reloadu */
-    .element-container {
+    .element-container {{
         transition: none !important;
-    }
+    }}
     
     /* OKNA PRO VÝSLEDKY */
-    .result-box {
+    .result-box {{
         background-color: #f8f9fa;
         padding: 20px;
         border-radius: 15px;
         border: 1px solid #e9ecef;
         box-shadow: 2px 2px 5px rgba(0,0,0,0.05);
         margin-bottom: 20px;
-    }
-    .box-title {
+    }}
+    .box-title {{
         font-weight: bold;
         color: #1f77b4;
         margin-bottom: 10px;
         border-bottom: 2px solid #e9ecef;
         padding-bottom: 5px;
-    }
+    }}
 
     /* STICKY TABS FIX */
-    div[data-baseweb="tab-list"] {
+    div[data-baseweb="tab-list"] {{
         position: sticky;
         top: 3rem;
         z-index: 9999;
@@ -64,24 +83,24 @@ st.markdown("""
         padding-top: 0.5rem;
         padding-bottom: 0.5rem;
         box-shadow: 0 4px 6px -6px #222;
-    }
-    div[data-testid="stTabs"] {
+    }}
+    div[data-testid="stTabs"] {{
         background-color: transparent;
-    }
+    }}
 
     /* CSS PRO PLOVOUCÍ TLAČÍTKO "PŘEPOČÍTAT" integrované do jednoho bloku */
-    div.element-container:has(.recalc-anchor) {
+    div.element-container:has(.recalc-anchor) {{
         display: none;
-    }
-    div.element-container:has(.recalc-anchor) + div.element-container {
+    }}
+    div.element-container:has(.recalc-anchor) + div.element-container {{
         position: fixed !important;
         bottom: 30px !important;
         left: 50% !important;
         transform: translateX(-50%) !important;
         z-index: 99999 !important;
         width: 320px !important;
-    }
-    div.element-container:has(.recalc-anchor) + div.element-container button {
+    }}
+    div.element-container:has(.recalc-anchor) + div.element-container button {{
         width: 100% !important;
         height: 60px !important; /* Větší výška pro oba řádky */
         border-radius: 15px !important;
@@ -92,16 +111,16 @@ st.markdown("""
         align-items: center;
         padding: 0 !important;
         line-height: 1.2;
-    }
+    }}
     /* Pseudo-element tvořící druhý řádek uvnitř tlačítka */
-    div.element-container:has(.recalc-anchor) + div.element-container button::after {
-        content: 'pro nově zvolené parametry';
+    div.element-container:has(.recalc-anchor) + div.element-container button::after {{
+        content: '{btn_subtext}';
         font-size: 0.75rem;
         font-weight: normal;
         opacity: 0.8;
         display: block;
         margin-top: 2px;
-    }
+    }}
 </style>
 """, unsafe_allow_html=True)
 
@@ -305,58 +324,59 @@ def generate_engine_animation(alpha_deg):
 # =============================================================================
 # 1. BOČNÍ PANEL - VSTUPY
 # =============================================================================
-st.sidebar.header("🎛️ Nastavení simulace")
+st.sidebar.header(t("🎛️ Nastavení simulace", "🎛️ Simulation Settings"))
 
-with st.sidebar.expander("1. Provozní parametry", expanded=True):
-    f = smart_input(r"Frekvence $f$ (Hz)", 1, 200, 50, 1, "freq")
-    p_st_MPa = smart_input(r"Střední tlak $p_{stř}$ (MPa)", 0.1, 50.0, 15.0, 0.1, "pres")
-    TT = smart_input(r"Teplota $T_T$ (K)", 300, 1500, 973, 10, "temp_hot")
-    TS = smart_input(r"Teplota $T_S$ (K)", 100, 800, 420, 10, "temp_cold")
-    alpha_deg = smart_input(r"Fázový posun $\alpha$ (°)", 0, 180, 90, 1, "alpha")
-    n_poly = smart_input(r"Polytropický exponent $n$ (-)", 1.0, 1.67, 1.4, 0.01, "n_poly")
+with st.sidebar.expander(t("1. Provozní parametry", "1. Operating Parameters"), expanded=True):
+    f = smart_input(t(r"Frekvence $f$ (Hz)", r"Frequency $f$ (Hz)"), 1, 200, 50, 1, "freq")
+    p_st_MPa = smart_input(t(r"Střední tlak $p_{stř}$ (MPa)", r"Mean pressure $p_{mean}$ (MPa)"), 0.1, 50.0, 15.0, 0.1, "pres")
+    TT = smart_input(t(r"Teplota ohřívače $T_T$ (K)", r"Heater temp. $T_H$ (K)"), 300, 1500, 973, 10, "temp_hot")
+    TS = smart_input(t(r"Teplota chladiče $T_S$ (K)", r"Cooler temp. $T_C$ (K)"), 100, 800, 420, 10, "temp_cold")
+    alpha_deg = smart_input(t(r"Fázový posun $\alpha$ (°)", r"Phase angle $\alpha$ (°)"), 0, 180, 90, 1, "alpha")
+    n_poly = smart_input(t(r"Polytropický exponent $n$ (-)", r"Polytropic exponent $n$ (-)"), 1.0, 1.67, 1.4, 0.01, "n_poly")
 
-with st.sidebar.expander("2. Geometrie", expanded=False):
-    VTZ_ccm = smart_input(r"Zdvihový objem $V_{TZ}$ (cm$^3$)", 10.0, 1000.0, 118.58, 0.01, "vol_main")
+with st.sidebar.expander(t("2. Geometrie", "2. Geometry"), expanded=False):
+    VTZ_ccm = smart_input(t(r"Zdvihový objem $V_{TZ}$ (cm$^3$)", r"Swept volume $V_{SW}$ (cm$^3$)"), 10.0, 1000.0, 118.58, 0.01, "vol_main")
     VTZ = VTZ_ccm * 1e-6 
     
     st.markdown("---")
-    geom_mode = st.radio("Způsob zadání objemů:", ["Poměry (X)", "Objemy (cm³)"], horizontal=True)
+    geom_mode = st.radio(t("Způsob zadání objemů:", "Volume input method:"), 
+                         [t("Poměry (X)", "Ratios (X)"), t("Objemy (cm³)", "Volumes (cm³)")], horizontal=True)
     
-    if geom_mode == "Poměry (X)":
-        XSZ = smart_input(r"Poměr $X_{SZ} (= V_{SZ} / V_{TZ})$", 0.1, 5.0, 1.5, 0.1, "xsz")
-        XR  = smart_input(r"Poměr $X_R (= V_R / V_{TZ})$", 0.1, 10.0, 2.0, 0.1, "xr")
-        XTM = smart_input(r"Poměr $X_{TM}$ (Mrtvý teplý)", 0.1, 5.0, 1.2, 0.1, "xtm")
-        XSM = smart_input(r"Poměr $X_{SM}$ (Mrtvý studený)", 0.1, 5.0, 2.5, 0.1, "xsm")
+    if geom_mode in ["Poměry (X)", "Ratios (X)"]:
+        XSZ = smart_input(t(r"Poměr $X_{SZ} (= V_{SZ} / V_{TZ})$", r"Ratio $X_{CW} (= V_{CW} / V_{SW})$"), 0.1, 5.0, 1.5, 0.1, "xsz")
+        XR  = smart_input(t(r"Poměr $X_R (= V_R / V_{TZ})$", r"Ratio $X_R (= V_R / V_{SW})$"), 0.1, 10.0, 2.0, 0.1, "xr")
+        XTM = smart_input(t(r"Poměr $X_{TM}$ (Mrtvý teplý)", r"Ratio $X_{HD}$ (Hot dead vol)"), 0.1, 5.0, 1.2, 0.1, "xtm")
+        XSM = smart_input(t(r"Poměr $X_{SM}$ (Mrtvý studený)", r"Ratio $X_{CD}$ (Cold dead vol)"), 0.1, 5.0, 2.5, 0.1, "xsm")
     else:
-        VSZ_ccm = smart_input(r"Objem $V_{SZ}$ (cm³)", 1.0, 1000.0, 177.87, 1.0, "vsz_ccm")
-        VR_ccm  = smart_input(r"Objem $V_R$ (cm³)", 1.0, 1000.0, 237.16, 1.0, "vr_ccm")
-        VTM_ccm = smart_input(r"Objem $V_{TM}$ (cm³)", 1.0, 1000.0, 142.30, 1.0, "vtm_ccm")
-        VSM_ccm = smart_input(r"Objem $V_{SM}$ (cm³)", 1.0, 1000.0, 296.45, 1.0, "vsm_ccm")
+        VSZ_ccm = smart_input(t(r"Objem $V_{SZ}$ (cm³)", r"Volume $V_{CW}$ (cm³)"), 1.0, 1000.0, 177.87, 1.0, "vsz_ccm")
+        VR_ccm  = smart_input(t(r"Objem $V_R$ (cm³)", r"Volume $V_R$ (cm³)"), 1.0, 1000.0, 237.16, 1.0, "vr_ccm")
+        VTM_ccm = smart_input(t(r"Objem $V_{TM}$ (cm³)", r"Volume $V_{HD}$ (cm³)"), 1.0, 1000.0, 142.30, 1.0, "vtm_ccm")
+        VSM_ccm = smart_input(t(r"Objem $V_{SM}$ (cm³)", r"Volume $V_{CD}$ (cm³)"), 1.0, 1000.0, 296.45, 1.0, "vsm_ccm")
         XSZ = VSZ_ccm / VTZ_ccm
         XR = VR_ccm / VTZ_ccm
         XTM = VTM_ccm / VTZ_ccm
         XSM = VSM_ccm / VTZ_ccm
         
     st.markdown("---")
-    vp_percent = smart_input(r"Objem překryvu zdvihů $V_P$ (% ideálu)", 0, 100, 0, 1, "vp_perc")
+    vp_percent = smart_input(t(r"Objem překryvu zdvihů $V_P$ (% ideálu)", r"Overlapping volume $V_P$ (% of ideal)"), 0, 100, 0, 1, "vp_perc")
 
-with st.sidebar.expander("3. Pracovní látka", expanded=False):
-    plyn = st.radio("Zvolte médium", ["Helium", "Vodík", "Vzduch"])
+with st.sidebar.expander(t("3. Pracovní látka", "3. Working Fluid"), expanded=False):
+    plyn = st.radio(t("Zvolte médium", "Select medium"), [t("Helium", "Helium"), t("Vodík", "Hydrogen"), t("Vzduch", "Air")])
     
-    if plyn == "Helium":
+    if plyn in ["Helium", "Helium"]:
         r_val = 2078.5
         kappa_val = 1.667
-    elif plyn == "Vodík":
+    elif plyn in ["Vodík", "Hydrogen"]:
         r_val = 4124.0
         kappa_val = 1.405
-    else: # Vzduch
+    else: # Vzduch / Air
         r_val = 287.0
         kappa_val = 1.400
     
-    st.info(f"Parametry pro **{plyn}**: $r={r_val}$, $\kappa={kappa_val}$")
+    st.info(t(f"Parametry pro **{plyn}**: $r={r_val}$, $\kappa={kappa_val}$", f"Parameters for **{plyn}**: $r={r_val}$, $\kappa={kappa_val}$"))
 
 st.sidebar.markdown("---")
-if st.sidebar.button("🔄 Restartovat nastavení", type="secondary"):
+if st.sidebar.button(t("🔄 Restartovat nastavení", "🔄 Reset settings"), type="secondary"):
     st.session_state.clear()
     st.rerun()
 
@@ -379,7 +399,7 @@ loader_placeholder = st.empty()
 
 if st.session_state.get('show_loader', False) and not params_changed:
     with loader_placeholder.container():
-        st.markdown("""<div class="loader-container"><div class="loader-ring"><div></div><div></div><div></div><div></div></div><p class="loader-text">Provádím termodynamický výpočet...</p></div>""", unsafe_allow_html=True)
+        st.markdown(f"""<div class="loader-container"><div class="loader-ring"><div></div><div></div><div></div><div></div></div><p class="loader-text">{t("Provádím termodynamický výpočet...", "Performing thermodynamic calculation...")}</p></div>""", unsafe_allow_html=True)
     time.sleep(0.6) 
     loader_placeholder.empty()
     st.session_state.show_loader = False
@@ -627,24 +647,24 @@ layout_style = dict(
 col_left, col_right = st.columns([3.5, 1.5])
 
 with col_left:
-    st.markdown("""
+    st.markdown(f"""
         <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; margin-bottom: 30px;">
             <h2 style="color: #2c3e50; font-size: 2.4rem; font-weight: 700; margin-bottom: 0px; text-align: center;">
-                Model oběhu Stirlingova motoru
+                {t("Model oběhu Stirlingova motoru", "Stirling Engine Cycle Model")}
             </h2>
             <h4 style="color: #7f8c8d; font-size: 1.1rem; font-weight: 400; margin-top: 5px; text-align: center;">
-                s polytropickými změnami na teplé a studené straně
+                {t("s polytropickými změnami na teplé a studené straně", "with polytropic processes on the hot and cold sides")}
             </h4>
             <div style="height: 3px; width: 60px; background-color: #FF4B4B; margin: 10px auto 0 auto; border-radius: 2px;"></div>
         </div>
     """, unsafe_allow_html=True)
 
-    st.markdown("<h3 style='margin: 0px; margin-bottom: 15px; color: #2c3e50; text-align: left;'>📊 Hlavní parametry cyklu</h3>", unsafe_allow_html=True)
+    st.markdown(f"<h3 style='margin: 0px; margin-bottom: 15px; color: #2c3e50; text-align: left;'>{t('📊 Hlavní parametry cyklu', '📊 Main Cycle Parameters')}</h3>", unsafe_allow_html=True)
     c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Výkon P", f"{res['Power_ind']/1000:.2f} kW")
-    c2.metric("Účinnost \u03b7", f"{res['eta']:.1f} %")
-    c3.metric(r"Hmotnost $m_{celk}$", f"{res['mass_total_g']:.3f} g")
-    c4.metric("Tlakový poměr ψ", f"{res['pressure_ratio']:.2f}")
+    c1.metric(t("Výkon P", "Power P"), f"{res['Power_ind']/1000:.2f} kW")
+    c2.metric(t("Účinnost \u03b7", "Efficiency \u03b7"), f"{res['eta']:.1f} %")
+    c3.metric(t(r"Hmotnost $m_{celk}$", r"Mass $m_{total}$"), f"{res['mass_total_g']:.3f} g")
+    c4.metric(t("Tlakový poměr ψ", "Pressure ratio ψ"), f"{res['pressure_ratio']:.2f}")
 
 with col_right:
     st.image(animated_gif, use_container_width=True)
@@ -654,84 +674,98 @@ warn_container = st.container()
 with warn_container:
     if params_changed:
         st.markdown('<div class="recalc-anchor"></div>', unsafe_allow_html=True)
-        if st.button("⚙️ Přepočítat model", type="primary", use_container_width=True):
+        if st.button(t("⚙️ Přepočítat model", "⚙️ Recalculate model"), type="primary", use_container_width=True):
             st.session_state.last_params = calc_params.copy()
             st.session_state.show_loader = True
             st.session_state.force_auto_curve = True
             
             if 'selected_curve_idx' in st.session_state:
                 del st.session_state['selected_curve_idx']
-            if 'curve_choice_radio' in st.session_state:
-                del st.session_state['curve_choice_radio']
                 
             st.rerun()
 
 st.markdown("<hr style='margin: 5px 0 15px 0;'>", unsafe_allow_html=True)
 
-df_export = pd.DataFrame({"Uhel otoceni [deg]": np.round(res['phi_deg'], 1),"Tlak [MPa]": np.round(res['p_real'] / 1e6, 4),"Objem celkovy [cm3]": np.round(res['V'] * 1e6, 3),"Objem teply [cm3]": np.round(res['VT'] * 1e6, 3),"Objem studeny [cm3]": np.round(res['VS'] * 1e6, 3),"Teplota plyn T [K]": np.round(res['T_gas_T'], 2),"Teplota plyn S [K]": np.round(res['T_gas_S'], 2)})
+df_export = pd.DataFrame({
+    t("Uhel otoceni [deg]", "Crank angle [deg]"): np.round(res['phi_deg'], 1),
+    t("Tlak [MPa]", "Pressure [MPa]"): np.round(res['p_real'] / 1e6, 4),
+    t("Objem celkovy [cm3]", "Total volume [cm3]"): np.round(res['V'] * 1e6, 3),
+    t("Objem teply [cm3]", "Hot volume [cm3]"): np.round(res['VT'] * 1e6, 3),
+    t("Objem studeny [cm3]", "Cold volume [cm3]"): np.round(res['VS'] * 1e6, 3),
+    t("Teplota plyn T [K]", "Hot gas temp. [K]"): np.round(res['T_gas_T'], 2),
+    t("Teplota plyn S [K]", "Cold gas temp. [K]"): np.round(res['T_gas_S'], 2)
+})
 csv_data = df_export.to_csv(index=False, sep=';', decimal=',').encode('utf-8-sig')
 
 # ZÁLOŽKY 
-tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs(["📋 Detailní výsledky", "📊 Tlak a objem", "🌡️ Teplotní průběhy", "⚡ Energetická bilance", "⚖️ Hmotnost média", "📈 Citlivostní analýza", "🎯 Odhad výkonu (Bn)"])
+tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
+    t("📋 Detailní výsledky", "📋 Detailed Results"), 
+    t("📊 Tlak a objem", "📊 Pressure & Volume"), 
+    t("🌡️ Teplotní průběhy", "🌡️ Temperatures"), 
+    t("⚡ Energetická bilance", "⚡ Energy Balance"), 
+    t("⚖️ Hmotnost média", "⚖️ Fluid Mass"), 
+    t("📈 Citlivostní analýza", "📈 Sensitivity Analysis"), 
+    t("🎯 Odhad výkonu (Bn)", "🎯 Power Est. (Bn)")
+])
 
 with tab1:
     c_head, c_down = st.columns([3, 1])
     with c_head:
-        st.markdown("<h3 style='margin: 0px; padding-top: 0.2rem;'>📋 Detailní výsledky simulace</h3>", unsafe_allow_html=True)
+        st.markdown(f"<h3 style='margin: 0px; padding-top: 0.2rem;'>{t('📋 Detailní výsledky simulace', '📋 Detailed Simulation Results')}</h3>", unsafe_allow_html=True)
     with c_down:
-        st.download_button(label="📥 Stáhnout data výsledků (CSV)", data=csv_data, file_name='stirling_simulation_data.csv', mime='text/csv', type="secondary", use_container_width=True)
+        st.download_button(label=t("📥 Stáhnout data výsledků (CSV)", "📥 Download results data (CSV)"), data=csv_data, file_name='stirling_simulation_data.csv', mime='text/csv', type="secondary", use_container_width=True)
     
     st.markdown("<div style='height: 0.3rem;'></div>", unsafe_allow_html=True)
     col_a, col_b = st.columns(2)
     with col_a:
-        st.markdown(f"""<div class="result-box" style="height: 320px;"><div class="box-title">Energie a Výkon</div><ul><li>Indikovaná práce W: <b>{res['W_cyklu']:.2f} J</b></li><li>Teplo přivedené Q<sub>in</sub>: <b>{res['Q_in']:.2f} J</b></li><li>Teplo odvedené Q<sub>out</sub>: <b>{abs(res['Q_out']):.2f} J</b></li><li>Regenerované teplo Q<sub>R</sub>: <b>{res['Q_reg_val']:.2f} J</b></li><li>Poměr Q<sub>R</sub> / Q<sub>in</sub>: <b>{res['ratio_Qreg']:.2f} [-]</b></li><li>Indikovaný výkon P: <b>{res['Power_ind']/1000:.2f} kW</b></li><li>Účinnost cyklu η: <b>{res['eta']:.2f} %</b></li></ul></div>""", unsafe_allow_html=True)
+        st.markdown(f"""<div class="result-box" style="height: 320px;"><div class="box-title">{t('Energie a Výkon', 'Energy and Power')}</div><ul><li>{t('Indikovaná práce', 'Indicated work')} W: <b>{res['W_cyklu']:.2f} J</b></li><li>{t('Teplo přivedené', 'Heat added')} Q<sub>in</sub>: <b>{res['Q_in']:.2f} J</b></li><li>{t('Teplo odvedené', 'Heat rejected')} Q<sub>out</sub>: <b>{abs(res['Q_out']):.2f} J</b></li><li>{t('Regenerované teplo', 'Regenerated heat')} Q<sub>R</sub>: <b>{res['Q_reg_val']:.2f} J</b></li><li>{t('Poměr', 'Ratio')} Q<sub>R</sub> / Q<sub>in</sub>: <b>{res['ratio_Qreg']:.2f} [-]</b></li><li>{t('Indikovaný výkon', 'Indicated power')} P: <b>{res['Power_ind']/1000:.2f} kW</b></li><li>{t('Účinnost cyklu', 'Cycle efficiency')} η: <b>{res['eta']:.2f} %</b></li></ul></div>""", unsafe_allow_html=True)
     with col_b:
-        st.markdown(f"""<div class="result-box" style="height: 320px;"><div class="box-title">Teploty plynu</div><ul><li>Teplá strana (T<sub>Ts</sub>):<ul><li>Max: <b>{np.max(res['T_gas_T']):.1f} K</b></li><li>Min: <b>{np.min(res['T_gas_T']):.1f} K</b></li><li>Průměr: <b>{np.mean(res['T_gas_T']):.1f} K</b></li></ul></li><li>Studená strana (T<sub>Ss</sub>):<ul><li>Max: <b>{np.max(res['T_gas_S']):.1f} K</b></li><li>Min: <b>{np.min(res['T_gas_S']):.1f} K</b></li><li>Průměr: <b>{np.mean(res['T_gas_S']):.1f} K</b></li></ul></li></ul></div>""", unsafe_allow_html=True)
+        st.markdown(f"""<div class="result-box" style="height: 320px;"><div class="box-title">{t('Teploty plynu', 'Gas Temperatures')}</div><ul><li>{t('Teplá strana', 'Hot side')} (T<sub>Ts</sub>):<ul><li>Max: <b>{np.max(res['T_gas_T']):.1f} K</b></li><li>Min: <b>{np.min(res['T_gas_T']):.1f} K</b></li><li>{t('Průměr', 'Mean')}: <b>{np.mean(res['T_gas_T']):.1f} K</b></li></ul></li><li>{t('Studená strana', 'Cold side')} (T<sub>Ss</sub>):<ul><li>Max: <b>{np.max(res['T_gas_S']):.1f} K</b></li><li>Min: <b>{np.min(res['T_gas_S']):.1f} K</b></li><li>{t('Průměr', 'Mean')}: <b>{np.mean(res['T_gas_S']):.1f} K</b></li></ul></li></ul></div>""", unsafe_allow_html=True)
     
     col_c, col_d = st.columns(2)
     with col_c:
-        st.markdown(f"""<div class="result-box" style="height: 190px;"><div class="box-title">Tlakové poměry</div><ul><li>Tlakový poměr ψ: <b>{res['pressure_ratio']:.2f} [-]</b></li><li>Max. tlak p<sub>max</sub>: <b>{np.max(res['p_real'])/1e6:.2f} MPa</b></li><li>Min. tlak p<sub>min</sub>: <b>{np.min(res['p_real'])/1e6:.2f} MPa</b></li><li>Střední tlak p<sub>stř</sub>: <b>{lp['p_st_MPa']:.2f} MPa</b></li></ul></div>""", unsafe_allow_html=True)
+        st.markdown(f"""<div class="result-box" style="height: 190px;"><div class="box-title">{t('Tlakové poměry', 'Pressure Ratios')}</div><ul><li>{t('Tlakový poměr', 'Pressure ratio')} ψ: <b>{res['pressure_ratio']:.2f} [-]</b></li><li>Max. {t('tlak', 'pressure')} p<sub>max</sub>: <b>{np.max(res['p_real'])/1e6:.2f} MPa</b></li><li>Min. {t('tlak', 'pressure')} p<sub>min</sub>: <b>{np.min(res['p_real'])/1e6:.2f} MPa</b></li><li>{t('Střední tlak', 'Mean pressure')} p<sub>stř</sub>: <b>{lp['p_st_MPa']:.2f} MPa</b></li></ul></div>""", unsafe_allow_html=True)
     with col_d:
-        st.markdown(f"""<div class="result-box" style="height: 190px;"><div class="box-title">Hmotnost náplně</div><ul><li>Celková hmotnost média (m<sub>celk</sub>): <b>{res['mass_total_g']:.4f} g</b></li><li>Relativní odchylka hmotnosti: <b>{res['mass_deviation']:.3f} %</b></li></ul></div>""", unsafe_allow_html=True)
+        st.markdown(f"""<div class="result-box" style="height: 190px;"><div class="box-title">{t('Hmotnost náplně', 'Fluid Mass')}</div><ul><li>{t('Celková hmotnost média', 'Total medium mass')} (m<sub>celk</sub>): <b>{res['mass_total_g']:.4f} g</b></li><li>{t('Relativní odchylka hmotnosti', 'Relative mass deviation')}: <b>{res['mass_deviation']:.3f} %</b></li></ul></div>""", unsafe_allow_html=True)
 
 with tab2:
     col1a, col1b = st.columns(2)
     with col1a:
         fig = go.Figure()
-        fig.add_trace(go.Scatter(x=res['V']*1e6, y=res['p_real']/1e6, mode='lines', line=dict(color='black', width=2), name='p-V cyklus'))
-        fig.update_layout(title=dict(text="p-V diagram", x=0.5, xanchor='center', yanchor='top'), xaxis_title="V (cm³)", yaxis_title="p (MPa)", height=400, **layout_style)
+        fig.add_trace(go.Scatter(x=res['V']*1e6, y=res['p_real']/1e6, mode='lines', line=dict(color='black', width=2), name=t('p-V cyklus', 'p-V cycle')))
+        fig.update_layout(title=dict(text=t("p-V diagram", "p-V Diagram"), x=0.5, xanchor='center', yanchor='top'), xaxis_title="V (cm³)", yaxis_title="p (MPa)", height=400, **layout_style)
         st.plotly_chart(fig, use_container_width=True)
     with col1b:
         fig = go.Figure()
-        fig.add_trace(go.Scatter(x=res['phi_deg'], y=res['p_real']/1e6, mode='lines', line=dict(color='black', width=2), name='Tlak p'))
+        fig.add_trace(go.Scatter(x=res['phi_deg'], y=res['p_real']/1e6, mode='lines', line=dict(color='black', width=2), name=t('Tlak p', 'Pressure p')))
         fig.add_hline(y=lp['p_st_MPa'], line_dash="dash", line_color="red", annotation_text="p<sub>stř</sub>")
-        fig.update_layout(title=dict(text="Průběh tlaku v závislosti na φ", x=0.5, xanchor='center', yanchor='top'), xaxis_title="φ (°)", yaxis_title="p (MPa)", height=400, **layout_style)
+        fig.update_layout(title=dict(text=t("Průběh tlaku v závislosti na φ", "Pressure vs. Crank angle φ"), x=0.5, xanchor='center', yanchor='top'), xaxis_title="φ (°)", yaxis_title="p (MPa)", height=400, **layout_style)
         fig.update_xaxes(tickmode='linear', tick0=0, dtick=45)
         st.plotly_chart(fig, use_container_width=True)
     col2a, col2b = st.columns(2)
     with col2a:
         fig = go.Figure()
-        fig.add_trace(go.Scatter(x=res['VT']*1e6, y=res['p_real']/1e6, mode='lines', line=dict(color='red', width=2), name='Teplý válec'))
-        fig.update_layout(title=dict(text="p-V<sub>T</sub> diagram (Teplý válec)", x=0.5, xanchor='center', yanchor='top'), xaxis_title="V<sub>T</sub> (cm³)", yaxis_title="p (MPa)", height=400, **layout_style)
+        fig.add_trace(go.Scatter(x=res['VT']*1e6, y=res['p_real']/1e6, mode='lines', line=dict(color='red', width=2), name=t('Teplý válec', 'Hot cylinder')))
+        fig.update_layout(title=dict(text=t("p-V<sub>T</sub> diagram (Teplý válec)", "p-V<sub>T</sub> Diagram (Hot Cylinder)"), x=0.5, xanchor='center', yanchor='top'), xaxis_title="V<sub>T</sub> (cm³)", yaxis_title="p (MPa)", height=400, **layout_style)
         st.plotly_chart(fig, use_container_width=True)
     with col2b:
         fig = go.Figure()
-        fig.add_trace(go.Scatter(x=res['VS']*1e6, y=res['p_real']/1e6, mode='lines', line=dict(color='blue', width=2), name='Studený válec'))
-        fig.update_layout(title=dict(text="p-V<sub>S</sub> diagram (Studený válec)", x=0.5, xanchor='center', yanchor='top'), xaxis_title="V<sub>S</sub> (cm³)", yaxis_title="p (MPa)", height=400, **layout_style)
+        fig.add_trace(go.Scatter(x=res['VS']*1e6, y=res['p_real']/1e6, mode='lines', line=dict(color='blue', width=2), name=t('Studený válec', 'Cold cylinder')))
+        fig.update_layout(title=dict(text=t("p-V<sub>S</sub> diagram (Studený válec)", "p-V<sub>S</sub> Diagram (Cold Cylinder)"), x=0.5, xanchor='center', yanchor='top'), xaxis_title="V<sub>S</sub> (cm³)", yaxis_title="p (MPa)", height=400, **layout_style)
         st.plotly_chart(fig, use_container_width=True)
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=res['phi_deg'], y=res['VT']*1e6, mode='lines', line=dict(color='red'), name='V<sub>T</sub>'))
     fig.add_trace(go.Scatter(x=res['phi_deg'], y=res['VS']*1e6, mode='lines', line=dict(color='blue'), name='V<sub>S</sub>'))
-    fig.add_trace(go.Scatter(x=res['phi_deg'], y=res['V']*1e6, mode='lines', line=dict(color='black', width=3), name='V<sub>celk</sub>'))
+    fig.add_trace(go.Scatter(x=res['phi_deg'], y=res['V']*1e6, mode='lines', line=dict(color='black', width=3), name=t('V<sub>celk</sub>', 'V<sub>total</sub>')))
     fig.add_hline(y=res['VTM']*1e6, line_dash="dot", line_color="red", annotation_text="V<sub>TM</sub>")
     fig.add_hline(y=res['VSM']*1e6, line_dash="dot", line_color="blue", annotation_text="V<sub>SM</sub>")
     fig.add_hline(y=res['VR']*1e6, line_dash="dash", line_color="magenta", annotation_text="V<sub>R</sub>")
-    fig.update_layout(title=dict(text="Průběh objemů v závislosti na φ", x=0.5, xanchor='center', yanchor='top'), xaxis_title="φ (°)", yaxis_title="V (cm³)", height=500, **layout_style)
+    fig.update_layout(title=dict(text=t("Průběh objemů v závislosti na φ", "Volumes vs. Crank angle φ"), x=0.5, xanchor='center', yanchor='top'), xaxis_title="φ (°)", yaxis_title="V (cm³)", height=500, **layout_style)
     fig.update_xaxes(tickmode='linear', tick0=0, dtick=45)
     st.plotly_chart(fig, use_container_width=True)
 
 with tab3:
-    st.markdown("### Teplota média v motoru v průběhu cyklu")
+    st.markdown(t("### Teplota média v motoru v průběhu cyklu", "### Gas Temperature Profile during the Cycle"))
     x_TR_intersect = np.interp(res['T_reg_mean'], res['T_reg_profile'][::-1], res['x_reg_vals'][::-1])
     fig_3d = go.Figure(data=[go.Surface(z=res['T_surface'], x=res['x_grid'], y=res['phi_grid'], colorscale='Jet', colorbar=dict(title='T (K)'))])
     fig_3d.add_trace(go.Scatter3d(x=[x_TR_intersect]*2, y=[0, 360], z=[res['T_reg_mean']]*2, mode='lines', line=dict(color='magenta', width=8), name='T_R'))
@@ -752,7 +786,7 @@ with tab3:
     fig.add_hline(y=lp['TT'], line_dash="dash", line_color="red", annotation_text="T<sub>T</sub>")
     fig.add_hline(y=lp['TS'], line_dash="dash", line_color="blue", annotation_text="T<sub>S</sub>")
     fig.add_hline(y=res['T_reg_mean'], line_dash="dot", line_color="magenta", annotation_text="T<sub>R</sub>")
-    fig.update_layout(title=dict(text="Průběh teplot v závislosti na φ", x=0.5, xanchor='center', yanchor='top'), xaxis_title="φ (°)", yaxis_title="T (K)", height=500, **layout_style)
+    fig.update_layout(title=dict(text=t("Průběh teplot v závislosti na φ", "Temperatures vs. Crank angle φ"), x=0.5, xanchor='center', yanchor='top'), xaxis_title="φ (°)", yaxis_title="T (K)", height=500, **layout_style)
     fig.update_xaxes(tickmode='linear', tick0=0, dtick=45)
     st.plotly_chart(fig, use_container_width=True)
     
@@ -761,7 +795,7 @@ with tab3:
     fig.add_trace(go.Scatter(x=res['phi_deg'], y=res['T_reg_mean']/res['T_gas_T'], mode='lines', line=dict(color='magenta'), name='T<sub>R</sub> / T<sub>Ts</sub>'))
     fig.add_hline(y=np.mean(res['T_gas_S']/res['T_gas_T']), line_dash="dash", line_color="blue")
     fig.add_hline(y=np.mean(res['T_reg_mean']/res['T_gas_T']), line_dash="dash", line_color="magenta")
-    fig.update_layout(title=dict(text="Průběh teplotních poměrů", x=0.5, xanchor='center', yanchor='top'), xaxis_title="φ (°)", yaxis_title="Poměr (-)", height=400, **layout_style)
+    fig.update_layout(title=dict(text=t("Průběh teplotních poměrů", "Temperature Ratios vs. Crank angle φ"), x=0.5, xanchor='center', yanchor='top'), xaxis_title="φ (°)", yaxis_title=t("Poměr (-)", "Ratio (-)"), height=400, **layout_style)
     fig.update_xaxes(tickmode='linear', tick0=0, dtick=45)
     st.plotly_chart(fig, use_container_width=True)
 
@@ -773,16 +807,16 @@ with tab4:
     fig.add_hline(y=valMin, line_dash="dot", line_color="black")
     fig.add_annotation(x=225, y=valMin, ax=225, ay=valMax, xref="x", yref="y", axref="x", ayref="y", showarrow=True, arrowhead=2, arrowside="end+start", arrowcolor="red", arrowwidth=2)
     fig.add_annotation(x=245, y=(valMax+valMin)/2, text=f"Q<sub>R</sub> = {res['Q_reg_val']:.1f} J", showarrow=False, font=dict(color="red", size=14, weight="bold"), xanchor="left")
-    fig.update_layout(title=dict(text="Průběh regenerovaného tepla Q<sub>R</sub>", x=0.5, xanchor='center', yanchor='top'), xaxis_title="φ (°)", yaxis_title="Q<sub>R</sub> (J)", height=500, **layout_style)
+    fig.update_layout(title=dict(text=t("Průběh regenerovaného tepla Q<sub>R</sub>", "Regenerated heat Q<sub>R</sub> profile"), x=0.5, xanchor='center', yanchor='top'), xaxis_title="φ (°)", yaxis_title="Q<sub>R</sub> (J)", height=500, **layout_style)
     fig.update_xaxes(tickmode='linear', tick0=0, dtick=45)
     st.plotly_chart(fig, use_container_width=True)
 
     fig = go.Figure()
-    fig.add_trace(go.Scatter(x=res['phi_deg'], y=res['p_real'] * res['dVT_dphi'], fill='tozeroy', mode='lines', line=dict(color='red', width=1), name='Teplá (p·dV<sub>T</sub>/dφ)'))
-    fig.add_trace(go.Scatter(x=res['phi_deg'], y=res['p_real'] * res['dVS_dphi'], fill='tozeroy', mode='lines', line=dict(color='blue', width=1), name='Studená (p·dV<sub>S</sub>/dφ)'))
-    fig.add_trace(go.Scatter(x=res['phi_deg'], y=(res['p_real'] * res['dVT_dphi']) + (res['p_real'] * res['dVS_dphi']), mode='lines', line=dict(color='black', width=3, dash='dash'), name='Celkem (p·dV/dφ)'))
+    fig.add_trace(go.Scatter(x=res['phi_deg'], y=res['p_real'] * res['dVT_dphi'], fill='tozeroy', mode='lines', line=dict(color='red', width=1), name=t('Teplá (p·dV<sub>T</sub>/dφ)', 'Hot (p·dV<sub>T</sub>/dφ)')))
+    fig.add_trace(go.Scatter(x=res['phi_deg'], y=res['p_real'] * res['dVS_dphi'], fill='tozeroy', mode='lines', line=dict(color='blue', width=1), name=t('Studená (p·dV<sub>S</sub>/dφ)', 'Cold (p·dV<sub>S</sub>/dφ)')))
+    fig.add_trace(go.Scatter(x=res['phi_deg'], y=(res['p_real'] * res['dVT_dphi']) + (res['p_real'] * res['dVS_dphi']), mode='lines', line=dict(color='black', width=3, dash='dash'), name=t('Celkem (p·dV/dφ)', 'Total (p·dV/dφ)')))
     fig.add_hline(y=0, line_color='black', line_width=1)
-    fig.update_layout(title=dict(text="Okamžitá práce (p · dV)", x=0.5, xanchor='center', yanchor='top'), xaxis_title="φ (°)", yaxis_title="dW/dφ (J/rad)", height=500, **layout_style)
+    fig.update_layout(title=dict(text=t("Okamžitá práce (p · dV)", "Instantaneous Work (p · dV)"), x=0.5, xanchor='center', yanchor='top'), xaxis_title="φ (°)", yaxis_title="dW/dφ (J/rad)", height=500, **layout_style)
     fig.update_xaxes(tickmode='linear', tick0=0, dtick=45)
     st.plotly_chart(fig, use_container_width=True)
 
@@ -791,15 +825,15 @@ with tab5:
     fig.add_trace(go.Scatter(x=res['phi_deg'], y=res['m_T_g'], mode='lines', line=dict(color='red', width=2), name='m<sub>T</sub>'))
     fig.add_trace(go.Scatter(x=res['phi_deg'], y=res['m_S_g'], mode='lines', line=dict(color='blue', width=2), name='m<sub>S</sub>'))
     fig.add_trace(go.Scatter(x=res['phi_deg'], y=res['m_R_g'], mode='lines', line=dict(color='magenta', width=2, dash='dash'), name='m<sub>R</sub>'))
-    fig.update_layout(title=dict(text="Hmotnost média v jednotlivých prostorech v průběhu cyklu", x=0.5, xanchor='center', yanchor='top'), xaxis_title="φ (°)", yaxis_title="Hmotnost (g)", height=500, **layout_style)
+    fig.update_layout(title=dict(text=t("Hmotnost média v jednotlivých prostorech v průběhu cyklu", "Mass of the medium in individual spaces during the cycle"), x=0.5, xanchor='center', yanchor='top'), xaxis_title="φ (°)", yaxis_title=t("Hmotnost (g)", "Mass (g)"), height=500, **layout_style)
     fig.update_xaxes(tickmode='linear', tick0=0, dtick=45)
     st.plotly_chart(fig, use_container_width=True)
     
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=res['phi_deg'], y=res['m_inst']*1000, mode='lines', line=dict(color='black', width=2), name='m<sub>celk</sub>'))
-    fig.add_hline(y=res['mass_total_g'], line_dash="dash", line_color="red", annotation_text="Průměr")
+    fig.add_hline(y=res['mass_total_g'], line_dash="dash", line_color="red", annotation_text=t("Průměr", "Mean"))
     y_mid = res['mass_total_g']
-    fig.update_layout(title=dict(text=f"Celková hmotnost média m<sub>celk</sub>", x=0.5, xanchor='center', yanchor='top'), xaxis_title="φ (°)", yaxis_title="m<sub>celk</sub> (g)", height=400, **layout_style)
+    fig.update_layout(title=dict(text=t(f"Celková hmotnost média m<sub>celk</sub>", f"Total mass of the medium m<sub>total</sub>"), x=0.5, xanchor='center', yanchor='top'), xaxis_title="φ (°)", yaxis_title=t("m<sub>celk</sub> (g)", "m<sub>total</sub> (g)"), height=400, **layout_style)
     fig.update_yaxes(range=[y_mid*0.999, y_mid*1.001])
     fig.update_xaxes(tickmode='linear', tick0=0, dtick=45)
     st.plotly_chart(fig, use_container_width=True)
@@ -857,7 +891,7 @@ with tab6:
     col_sweep1, col_sweep2 = st.columns([1, 2.5])
     
     with col_sweep1:
-        param_options = [
+        param_options_cz = [
             "Střední tlak p_stř (MPa)", 
             "Frekvence f (Hz)", 
             "Teplota ohřívače T_T (K)", 
@@ -870,42 +904,66 @@ with tab6:
             "Objem překryvu zdvihů V_P (% ideálu)",
             "Polytropický exponent n (-)"
         ]
-        param_type = st.selectbox("Měněný parametr (osa X):", param_options, key='param_x_sel')
+        param_options_en = [
+            "Mean pressure p_mean (MPa)", 
+            "Frequency f (Hz)", 
+            "Heater temp. T_H (K)", 
+            "Cooler temp. T_C (K)", 
+            "Phase angle α (°)",
+            "Stroke ratio X_CW (-)",
+            "Hot dead volume X_HD (-)",
+            "Cold dead volume X_CD (-)",
+            "Regenerator volume X_R (-)",
+            "Overlapping volume V_P (% of ideal)",
+            "Polytropic exponent n (-)"
+        ]
+        opts = param_options_cz if is_cz else param_options_en
+        param_type = st.selectbox(t("Měněný parametr (osa X):", "Parameter to sweep (X-axis):"), opts, key='param_x_sel')
+        idx_p = opts.index(param_type)
 
-        y_options = [
+        y_options_cz = [
             "Výkon P (kW) a Účinnost η",
             "Tlaky (p_max, p_min) a poměr ψ", 
             "Regenerace (Q_R, poměr Q_R/Q_in)",
             "Energie (W, Q_in, |Q_out|)",
             "Celková hmotnost média m_celk"
         ]
-        y_choice = st.selectbox("Zkoumaná veličina (osa Y):", y_options, key='param_y_sel')
+        y_options_en = [
+            "Power P (kW) & Efficiency η",
+            "Pressures (p_max, p_min) & Ratio ψ", 
+            "Regeneration (Q_R, ratio Q_R/Q_in)",
+            "Energies (W, Q_in, |Q_out|)",
+            "Total fluid mass m_total"
+        ]
+        y_opts = y_options_cz if is_cz else y_options_en
+        y_choice = st.selectbox(t("Zkoumaná veličina (osa Y):", "Investigated variable (Y-axis):"), y_opts, key='param_y_sel')
+        idx_y = y_opts.index(y_choice)
         
         st.markdown("<hr style='margin: 5px 0 10px 0;'>", unsafe_allow_html=True)
 
-        if "tlak" in param_type: min_v, max_v, step_v, curr_val = 1.0, 30.0, 1.0, lp['p_st_MPa']
-        elif "Frekvence" in param_type: min_v, max_v, step_v, curr_val = 10.0, 200.0, 10.0, lp['f']
-        elif "T_T" in param_type: min_v, max_v, step_v, curr_val = 500.0, 1500.0, 50.0, lp['TT']
-        elif "T_S" in param_type: min_v, max_v, step_v, curr_val = 200.0, 600.0, 20.0, lp['TS']
-        elif "Fázový" in param_type: min_v, max_v, step_v, curr_val = 0.0, 180.0, 5.0, lp['alpha_deg']
-        elif "X_SZ" in param_type: min_v, max_v, step_v, curr_val = 0.5, 3.0, 0.1, lp['XSZ']
-        elif "X_TM" in param_type: min_v, max_v, step_v, curr_val = 0.0, 5.0, 0.1, lp['XTM']
-        elif "X_SM" in param_type: min_v, max_v, step_v, curr_val = 0.0, 5.0, 0.1, lp['XSM']
-        elif "X_R" in param_type: min_v, max_v, step_v, curr_val = 0.0, 5.0, 0.1, lp['XR']
-        elif "V_P" in param_type: min_v, max_v, step_v, curr_val = 0.0, 100.0, 5.0, lp['vp_percent']
-        elif "exponent" in param_type: min_v, max_v, step_v, curr_val = 1.0, 1.67, 0.05, lp['n_poly']
+        if idx_p == 0: min_v, max_v, step_v, curr_val = 1.0, 30.0, 1.0, lp['p_st_MPa']
+        elif idx_p == 1: min_v, max_v, step_v, curr_val = 10.0, 200.0, 10.0, lp['f']
+        elif idx_p == 2: min_v, max_v, step_v, curr_val = 500.0, 1500.0, 50.0, lp['TT']
+        elif idx_p == 3: min_v, max_v, step_v, curr_val = 200.0, 600.0, 20.0, lp['TS']
+        elif idx_p == 4: min_v, max_v, step_v, curr_val = 0.0, 180.0, 5.0, lp['alpha_deg']
+        elif idx_p == 5: min_v, max_v, step_v, curr_val = 0.5, 3.0, 0.1, lp['XSZ']
+        elif idx_p == 6: min_v, max_v, step_v, curr_val = 0.0, 5.0, 0.1, lp['XTM']
+        elif idx_p == 7: min_v, max_v, step_v, curr_val = 0.0, 5.0, 0.1, lp['XSM']
+        elif idx_p == 8: min_v, max_v, step_v, curr_val = 0.0, 5.0, 0.1, lp['XR']
+        elif idx_p == 9: min_v, max_v, step_v, curr_val = 0.0, 100.0, 5.0, lp['vp_percent']
+        elif idx_p == 10: min_v, max_v, step_v, curr_val = 1.0, 1.67, 0.05, lp['n_poly']
         
-        st.markdown(f"<p style='margin-top:-5px; margin-bottom:5px; font-size:0.95rem;'><b>Výchozí stav:</b> {curr_val}</p>", unsafe_allow_html=True)
+        st.markdown(f"<p style='margin-top:-5px; margin-bottom:5px; font-size:0.95rem;'><b>{t('Výchozí stav:', 'Default value:')}</b> {curr_val}</p>", unsafe_allow_html=True)
         
         c_min, c_max = st.columns(2)
         with c_min:
-            sweep_min = st.number_input("Min hodnota osy X", value=float(min_v), step=step_v, key=f's_min_{param_type}')
+            sweep_min = st.number_input(t("Min hodnota osy X", "Min value (X-axis)"), value=float(min_v), step=step_v, key=f's_min_{idx_p}')
         with c_max:
-            sweep_max = st.number_input("Max hodnota osy X", value=float(max_v), step=step_v, key=f's_max_{param_type}')
+            sweep_max = st.number_input(t("Max hodnota osy X", "Max value (X-axis)"), value=float(max_v), step=step_v, key=f's_max_{idx_p}')
             
-        steps_count = st.slider("Počet kroků výpočtu", 5, 200, 100, key=f's_steps_{param_type}')
+        steps_count = st.slider(t("Počet kroků výpočtu", "Number of calculation steps"), 5, 200, 100, key=f's_steps_{idx_p}')
         st.markdown("<br>", unsafe_allow_html=True)
-        run_sweep = st.button("🚀 Spustit analýzu", type="primary", use_container_width=True)
+        run_sweep = st.button(t("🚀 Spustit analýzu", "🚀 Run Analysis"), type="primary", use_container_width=True)
 
     with col_sweep2:
         if run_sweep:
@@ -917,17 +975,17 @@ with tab6:
             
             for idx, x_val in enumerate(x_vals):
                 sweep_params = lp.copy() 
-                if "tlak" in param_type: sweep_params['p_st_MPa'] = x_val
-                elif "Frekvence" in param_type: sweep_params['f'] = x_val
-                elif "T_T" in param_type: sweep_params['TT'] = x_val
-                elif "T_S" in param_type: sweep_params['TS'] = x_val
-                elif "Fázový" in param_type: sweep_params['alpha_deg'] = x_val
-                elif "X_SZ" in param_type: sweep_params['XSZ'] = x_val
-                elif "X_TM" in param_type: sweep_params['XTM'] = x_val
-                elif "X_SM" in param_type: sweep_params['XSM'] = x_val
-                elif "X_R" in param_type: sweep_params['XR'] = x_val
-                elif "V_P" in param_type: sweep_params['vp_percent'] = x_val
-                elif "exponent" in param_type: sweep_params['n_poly'] = x_val
+                if idx_p == 0: sweep_params['p_st_MPa'] = x_val
+                elif idx_p == 1: sweep_params['f'] = x_val
+                elif idx_p == 2: sweep_params['TT'] = x_val
+                elif idx_p == 3: sweep_params['TS'] = x_val
+                elif idx_p == 4: sweep_params['alpha_deg'] = x_val
+                elif idx_p == 5: sweep_params['XSZ'] = x_val
+                elif idx_p == 6: sweep_params['XTM'] = x_val
+                elif idx_p == 7: sweep_params['XSM'] = x_val
+                elif idx_p == 8: sweep_params['XR'] = x_val
+                elif idx_p == 9: sweep_params['vp_percent'] = x_val
+                elif idx_p == 10: sweep_params['n_poly'] = x_val
                 
                 sweep_res = solve_cycle_sweep(sweep_params)
                 results.append(sweep_res)
@@ -935,41 +993,27 @@ with tab6:
             
             progress_container.empty() 
 
-            if "tlak" in param_type: x_label = "Střední tlak p<sub>stř</sub> (MPa)"
-            elif "Frekvence" in param_type: x_label = "Frekvence f (Hz)"
-            elif "T_T" in param_type: x_label = "Teplota ohřívače T<sub>T</sub> (K)"
-            elif "T_S" in param_type: x_label = "Teplota chladiče T<sub>S</sub> (K)"
-            elif "Fázový" in param_type: x_label = "Úhel α (°)"
-            elif "X_SZ" in param_type: x_label = "Poměr objemů X<sub>SZ</sub> (-)"
-            elif "X_TM" in param_type: x_label = "Mrtvý objem X<sub>TM</sub> (-)"
-            elif "X_SM" in param_type: x_label = "Mrtvý objem X<sub>SM</sub> (-)"
-            elif "X_R" in param_type: x_label = "Mrtvý objem X<sub>R</sub> (-)"
-            elif "V_P" in param_type: x_label = "Objem překryvu V<sub>P</sub> (% ideálu)"
-            elif "exponent" in param_type: x_label = "Exponent n (-)"
+            x_label = param_type
             
-            title_declension = {
-                "Střední tlak p_stř (MPa)": "středním tlaku p<sub>stř</sub>",
-                "Frekvence f (Hz)": "frekvenci f",
-                "Teplota ohřívače T_T (K)": "teplotě ohřívače T<sub>T</sub>",
-                "Teplota chladiče T_S (K)": "teplotě chladiče T<sub>S</sub>",
-                "Fázový posun α (°)": "fázovém posunu α",
-                "Poměr zdvihů X_SZ (-)": "poměru zdvihů X<sub>SZ</sub>",
-                "Mrtvý objem teplý X_TM (-)": "mrtvém objemu X<sub>TM</sub>",
-                "Mrtvý objem studený X_SM (-)": "mrtvém objemu X<sub>SM</sub>",
-                "Objem regenerátoru X_R (-)": "objemu regenerátoru X<sub>R</sub>",
-                "Objem překryvu zdvihů V_P (% ideálu)": "objemu překryvu V<sub>P</sub>",
-                "Polytropický exponent n (-)": "polytropickém exponentu n"
-            }
-            declined_param = title_declension.get(param_type, param_type)
-
+            declined_cz = [
+                "středním tlaku p_stř", "frekvenci f", "teplotě ohřívače T_T", "teplotě chladiče T_S",
+                "fázovém posunu α", "poměru zdvihů X_SZ", "mrtvém objemu X_TM", "mrtvém objemu X_SM",
+                "objemu regenerátoru X_R", "objemu překryvu V_P", "polytropickém exponentu n"
+            ]
+            declined_en = [
+                "mean pressure p_mean", "frequency f", "heater temp. T_H", "cooler temp. T_C",
+                "phase angle α", "stroke ratio X_CW", "hot dead vol. X_HD", "cold dead vol. X_CD",
+                "regenerator volume X_R", "overlapping vol. V_P", "polytropic exponent n"
+            ]
+            declined_param = declined_cz[idx_p] if is_cz else declined_en[idx_p]
             y_title_main = y_choice.split('(')[0].strip()
             
-            if "Výkon" in y_choice:
+            if idx_y == 0:
                 arr_P = [r['P']/1000 for r in results]
                 arr_eta = [r['eta'] for r in results]
                 fig = make_subplots(specs=[[{"secondary_y": True}]])
-                fig.add_trace(go.Scatter(x=x_vals, y=arr_P, name="Výkon (kW)", line=dict(color='blue', width=3)), secondary_y=False)
-                fig.add_trace(go.Scatter(x=x_vals, y=arr_eta, name="Účinnost (%)", line=dict(color='red', width=3, dash='dot')), secondary_y=True)
+                fig.add_trace(go.Scatter(x=x_vals, y=arr_P, name=t("Výkon (kW)", "Power (kW)"), line=dict(color='blue', width=3)), secondary_y=False)
+                fig.add_trace(go.Scatter(x=x_vals, y=arr_eta, name=t("Účinnost (%)", "Efficiency (%)"), line=dict(color='red', width=3, dash='dot')), secondary_y=True)
                 
                 add_extrema(fig, x_vals, arr_P, 'blue', secondary_y=False, y_fmt=".2f")
                 add_extrema(fig, x_vals, arr_eta, 'red', secondary_y=True, y_fmt=".1f")
@@ -977,42 +1021,42 @@ with tab6:
                 eta_min, eta_max = np.min(arr_eta), np.max(arr_eta)
                 if eta_max - eta_min < 0.1:
                     eta_mean = np.mean(arr_eta)
-                    fig.update_yaxes(title_text="Účinnost η (%)", range=[eta_mean - 1, eta_mean + 1], secondary_y=True, showgrid=False, title_font=dict(color="red"), showline=False, mirror=False)
+                    fig.update_yaxes(title_text=t("Účinnost η (%)", "Efficiency η (%)"), range=[eta_mean - 1, eta_mean + 1], secondary_y=True, showgrid=False, title_font=dict(color="red"), showline=False, mirror=False)
                 else:
-                    fig.update_yaxes(title_text="Účinnost η (%)", secondary_y=True, showgrid=False, title_font=dict(color="red"), showline=False, mirror=False)
+                    fig.update_yaxes(title_text=t("Účinnost η (%)", "Efficiency η (%)"), secondary_y=True, showgrid=False, title_font=dict(color="red"), showline=False, mirror=False)
                 
-                fig.update_yaxes(title_text="Výkon P (kW)", secondary_y=False, showgrid=True, gridcolor='#d9d9d9', title_font=dict(color="blue"), showline=False, mirror=False)
+                fig.update_yaxes(title_text=t("Výkon P (kW)", "Power P (kW)"), secondary_y=False, showgrid=True, gridcolor='#d9d9d9', title_font=dict(color="blue"), showline=False, mirror=False)
 
-            elif "Tlaky" in y_choice:
+            elif idx_y == 1:
                 arr_pmax = [r['p_max'] for r in results]
                 arr_pmin = [r['p_min'] for r in results]
                 arr_psi = [r['psi'] for r in results]
                 fig = make_subplots(specs=[[{"secondary_y": True}]])
-                fig.add_trace(go.Scatter(x=x_vals, y=arr_pmax, name="Max. tlak p<sub>max</sub>", line=dict(color='red', width=3)), secondary_y=False)
-                fig.add_trace(go.Scatter(x=x_vals, y=arr_pmin, name="Min. tlak p<sub>min</sub>", line=dict(color='blue', width=3)), secondary_y=False)
-                fig.add_trace(go.Scatter(x=x_vals, y=arr_psi, name="Tlakový poměr ψ", line=dict(color='purple', width=3, dash='dot')), secondary_y=True)
+                fig.add_trace(go.Scatter(x=x_vals, y=arr_pmax, name=t("Max. tlak p<sub>max</sub>", "Max. pressure p<sub>max</sub>"), line=dict(color='red', width=3)), secondary_y=False)
+                fig.add_trace(go.Scatter(x=x_vals, y=arr_pmin, name=t("Min. tlak p<sub>min</sub>", "Min. pressure p<sub>min</sub>"), line=dict(color='blue', width=3)), secondary_y=False)
+                fig.add_trace(go.Scatter(x=x_vals, y=arr_psi, name=t("Tlakový poměr ψ", "Pressure ratio ψ"), line=dict(color='purple', width=3, dash='dot')), secondary_y=True)
                 
                 add_extrema(fig, x_vals, arr_pmax, 'red', secondary_y=False, y_fmt=".2f")
                 add_extrema(fig, x_vals, arr_pmin, 'blue', secondary_y=False, y_fmt=".2f")
                 add_extrema(fig, x_vals, arr_psi, 'purple', secondary_y=True, y_fmt=".2f")
 
-                fig.update_yaxes(title_text="Tlak p (MPa)", secondary_y=False, showgrid=True, gridcolor='#d9d9d9', showline=False, mirror=False)
-                fig.update_yaxes(title_text="Tlakový poměr ψ (-)", secondary_y=True, showgrid=False, title_font=dict(color="purple"), showline=False, mirror=False)
+                fig.update_yaxes(title_text=t("Tlak p (MPa)", "Pressure p (MPa)"), secondary_y=False, showgrid=True, gridcolor='#d9d9d9', showline=False, mirror=False)
+                fig.update_yaxes(title_text=t("Tlakový poměr ψ (-)", "Pressure ratio ψ (-)"), secondary_y=True, showgrid=False, title_font=dict(color="purple"), showline=False, mirror=False)
 
-            elif "Regenerace" in y_choice:
+            elif idx_y == 2:
                 arr_qreg = [r['Q_reg'] for r in results]
                 arr_qratio = [r['Q_ratio'] for r in results]
                 fig = make_subplots(specs=[[{"secondary_y": True}]])
-                fig.add_trace(go.Scatter(x=x_vals, y=arr_qreg, name="Regenerované teplo Q<sub>R</sub>", line=dict(color='darkgreen', width=3)), secondary_y=False)
-                fig.add_trace(go.Scatter(x=x_vals, y=arr_qratio, name="Poměr Q<sub>R</sub> / Q<sub>in</sub>", line=dict(color='olive', width=3, dash='dot')), secondary_y=True)
+                fig.add_trace(go.Scatter(x=x_vals, y=arr_qreg, name=t("Regenerované teplo Q<sub>R</sub>", "Regenerated heat Q<sub>R</sub>"), line=dict(color='darkgreen', width=3)), secondary_y=False)
+                fig.add_trace(go.Scatter(x=x_vals, y=arr_qratio, name=t("Poměr Q<sub>R</sub> / Q<sub>in</sub>", "Ratio Q<sub>R</sub> / Q<sub>in</sub>"), line=dict(color='olive', width=3, dash='dot')), secondary_y=True)
                 
                 add_extrema(fig, x_vals, arr_qreg, 'darkgreen', secondary_y=False, y_fmt=".1f")
                 add_extrema(fig, x_vals, arr_qratio, 'olive', secondary_y=True, y_fmt=".2f")
 
-                fig.update_yaxes(title_text="Regenerované teplo Q<sub>R</sub> (J)", secondary_y=False, showgrid=True, gridcolor='#d9d9d9', title_font=dict(color="darkgreen"), showline=False, mirror=False)
-                fig.update_yaxes(title_text="Poměr Q<sub>R</sub> / Q<sub>in</sub> (-)", secondary_y=True, showgrid=False, title_font=dict(color="olive"), showline=False, mirror=False)
+                fig.update_yaxes(title_text=t("Regenerované teplo Q<sub>R</sub> (J)", "Regenerated heat Q<sub>R</sub> (J)"), secondary_y=False, showgrid=True, gridcolor='#d9d9d9', title_font=dict(color="darkgreen"), showline=False, mirror=False)
+                fig.update_yaxes(title_text=t("Poměr Q<sub>R</sub> / Q<sub>in</sub> (-)", "Ratio Q<sub>R</sub> / Q<sub>in</sub> (-)"), secondary_y=True, showgrid=False, title_font=dict(color="olive"), showline=False, mirror=False)
 
-            elif "Energie" in y_choice:
+            elif idx_y == 3:
                 arr_w = [r['W'] for r in results]
                 arr_qin = [r['Q_in'] for r in results]
                 arr_qout = [r['Q_out'] for r in results]
@@ -1021,42 +1065,49 @@ with tab6:
                 lowest_key = sorted(max_vals, key=max_vals.get)[0]
 
                 fig = go.Figure()
-                fig.add_trace(go.Scatter(x=x_vals, y=arr_qin, name="Přivedené Q<sub>in</sub>", line=dict(color='red', width=3)))
-                fig.add_trace(go.Scatter(x=x_vals, y=arr_w, name="Práce W", line=dict(color='black', width=3, dash='dash')))
-                fig.add_trace(go.Scatter(x=x_vals, y=arr_qout, name="Odvedené |Q<sub>out</sub>|", line=dict(color='blue', width=3)))
+                fig.add_trace(go.Scatter(x=x_vals, y=arr_qin, name=t("Přivedené Q<sub>in</sub>", "Heat added Q<sub>in</sub>"), line=dict(color='red', width=3)))
+                fig.add_trace(go.Scatter(x=x_vals, y=arr_w, name=t("Práce W", "Work W"), line=dict(color='black', width=3, dash='dash')))
+                fig.add_trace(go.Scatter(x=x_vals, y=arr_qout, name=t("Odvedené |Q<sub>out</sub>|", "Heat rejected |Q<sub>out</sub>|"), line=dict(color='blue', width=3)))
                 
                 add_extrema(fig, x_vals, arr_qin, 'red', secondary_y=None, y_fmt=".1f", ay_max=45 if lowest_key == 'qin' else -35)
                 add_extrema(fig, x_vals, arr_w, 'black', secondary_y=None, y_fmt=".1f", ay_max=45 if lowest_key == 'w' else -35)
                 add_extrema(fig, x_vals, arr_qout, 'blue', secondary_y=None, y_fmt=".1f", ay_max=45 if lowest_key == 'qout' else -35)
 
-                fig.update_yaxes(title_text="Energie (J)", showgrid=True, gridcolor='#d9d9d9', showline=False, mirror=False)
+                fig.update_yaxes(title_text=t("Energie (J)", "Energy (J)"), showgrid=True, gridcolor='#d9d9d9', showline=False, mirror=False)
 
-            elif "hmotnost" in y_choice:
+            elif idx_y == 4:
                 arr_m = [r['m_celk'] for r in results]
                 fig = go.Figure()
                 fig.add_trace(go.Scatter(x=x_vals, y=arr_m, name="m<sub>celk</sub>", line=dict(color='saddlebrown', width=3)))
                 
                 add_extrema(fig, x_vals, arr_m, 'saddlebrown', secondary_y=None, y_fmt=".3f")
 
-                fig.update_yaxes(title_text="Hmotnost média m<sub>celk</sub> (g)", showgrid=True, gridcolor='#d9d9d9', showline=False, mirror=False)
+                fig.update_yaxes(title_text=t("Hmotnost média m<sub>celk</sub> (g)", "Total mass m<sub>total</sub> (g)"), showgrid=True, gridcolor='#d9d9d9', showline=False, mirror=False)
 
-            fig.update_layout(title=dict(text=f"Závislost: {y_title_main} na {declined_param}", x=0.5, xanchor='center', yanchor='top'), xaxis_title=x_label, height=500, **layout_style)
+            plot_title = f"Závislost: {y_title_main} na {declined_param}" if is_cz else f"Dependence: {y_title_main} on {declined_param}"
+            fig.update_layout(title=dict(text=plot_title, x=0.5, xanchor='center', yanchor='top'), xaxis_title=x_label, height=500, **layout_style)
             st.plotly_chart(fig, use_container_width=True)
         else:
             st.write("")
             
         st.markdown("---")
         st.caption(
-            "Tento nástroj provádí sérii výpočtů (simulací), kde postupně mění **jeden zvolený parametr** (osa X) v zadaném rozsahu. "
-            "Zároveň sleduje vliv na vámi **vybranou veličinu** (osa Y). Všechny ostatní parametry zůstávají zafixované na hodnotách, "
-            "které máte aktuálně potvrzené z levého panelu. To umožňuje zkoumat chování motoru v extrémních stavech bez přepisování celého modelu."
+            t("Tento nástroj provádí sérii výpočtů (simulací), kde postupně mění **jeden zvolený parametr** (osa X) v zadaném rozsahu. "
+              "Zároveň sleduje vliv na vámi **vybranou veličinu** (osa Y). Všechny ostatní parametry zůstávají zafixované na hodnotách, "
+              "které máte aktuálně potvrzené z levého panelu. To umožňuje zkoumat chování motoru v extrémních stavech bez přepisování celého modelu.",
+              "This tool performs a series of calculations (simulations) where it incrementally changes **one selected parameter** (X-axis) over a specified range. "
+              "Simultaneously, it tracks the effect on your **selected variable** (Y-axis). All other parameters remain fixed at the values "
+              "currently confirmed in the left panel. This allows exploring the engine's behavior in extreme states without rewriting the entire model."
+            )
         )
 
 with tab7:
-    st.markdown("### 🎯 Odhad reálného výkonu pomocí Bealeova čísla")
+    st.markdown(t("### 🎯 Odhad reálného výkonu pomocí Bealeova čísla", "### 🎯 Estimation of Real Power using Beale Number"))
     st.write(
-        "Tento nástroj umožňuje odhadnout skutečný výkon vašeho stroje na základě empirických dat sestavených G. Walkerem. "
-        "Na rozdíl od ideálního indikovaného výkonu ($P_{ind}$), tento výpočet v sobě zahrnuje reálné aerodynamické i mechanické ztráty v závislosti na typu motoru."
+        t("Tento nástroj umožňuje odhadnout skutečný výkon vašeho stroje na základě empirických dat sestavených G. Walkerem. "
+          "Na rozdíl od ideálního indikovaného výkonu ($P_{ind}$), tento výpočet v sobě zahrnuje reálné aerodynamické i mechanické ztráty v závislosti na typu motoru.",
+          "This tool estimates the actual power of your machine based on empirical data compiled by G. Walker. "
+          "Unlike ideal indicated power ($P_{ind}$), this calculation inherently accounts for real aerodynamic and mechanical losses depending on the engine type.")
     )
     
     # Funkce pro výpočet Bn s asymptotickou extrapolací (křivka se zplošťuje)
@@ -1085,12 +1136,19 @@ with tab7:
     
     bns = [bn_top, bn_mid, bn_bot, bn_fsps]
     
-    base_options = [
+    base_options_cz = [
         "Velké, dobře navržené a vysoce účinné motory s dobrým chlazením",
         "Běžné, průměrně navržené motory",
         "Menší, ekonomické motory se střední účinností navržené pro dlouhou životnost nebo omezené chlazení",
         "Motory s volnými písty a velkými mrtvými objemy"
     ]
+    base_options_en = [
+        "Large, well-designed, highly efficient engines with good cooling",
+        "Common, average-designed engines",
+        "Smaller, economical engines\nwith moderate efficiency\ndesigned for long life\nor limited cooling",
+        "Free-piston engines with large dead volumes"
+    ]
+    base_options = base_options_cz if is_cz else base_options_en
     
     best_idx = 0
     min_diff = float('inf')
@@ -1102,16 +1160,22 @@ with tab7:
             min_diff = diff
             best_idx = i
 
+    rec_title = "✅ Doporučená volba: " if is_cz else "✅ Recommended choice: "
+    rec_sub = "(doporučeno na základě zvoleného mrtvého objemu)" if is_cz else "(recommended based on selected dead volume)"
+
+    # U angličtiny odstraníme případné \n z textu při výpisu v radio buttonu, aby to nahoře nebylo rozházené
+    clean_best_option = base_options[best_idx].replace('\n', ' ')
+
     st.markdown(f"""
     <div style="margin-top: 15px; margin-bottom: 5px;">
-        <span style="color: black; font-weight: bold; font-size: 1.1rem;">✅ Doporučená volba: {base_options[best_idx]}</span><br>
-        <span style="font-size: 0.85rem; color: #666; margin-left: 28px;">(doporučeno na základě zvoleného mrtvého objemu)</span>
+        <span style="color: black; font-weight: bold; font-size: 1.1rem;">{rec_title}{clean_best_option}</span><br>
+        <span style="font-size: 0.85rem; color: #666; margin-left: 28px;">{rec_sub}</span>
     </div>
     """, unsafe_allow_html=True)
 
     # Vytvoření dynamických textů pro přepínač (tučné písmo a ikona pro vítěze)
-    display_options = list(base_options)
-    display_options[best_idx] = f"✅ **{base_options[best_idx]}** (← Doporučeno pro zvolené mrtvé objemy)"
+    display_options = [opt.replace('\n', ' ') for opt in base_options]
+    display_options[best_idx] = f"✅ **{clean_best_option}** (← {rec_sub.strip('()')})"
 
     if 'selected_curve_idx' not in st.session_state:
         st.session_state.selected_curve_idx = best_idx
@@ -1121,7 +1185,7 @@ with tab7:
         st.session_state.selected_curve_idx = best_idx
         st.session_state.force_auto_curve = False
 
-    # Natvrdo propíšeme hodnotu do session state před inicializací radio buttonu
+    # Natvrdo propíšeme hodnotu do session state před inicializací radio buttonu (bezpečné vůči změně jazyka)
     st.session_state['curve_choice_radio'] = display_options[st.session_state.selected_curve_idx]
 
     def update_curve_idx():
@@ -1134,7 +1198,7 @@ with tab7:
     st.markdown("<br>", unsafe_allow_html=True)
     
     # Renderování radio buttonu
-    curve_choice = st.radio("Vyberte referenční kategorii vašeho motoru pro odečet Bn:", 
+    curve_choice = st.radio(t("Vyberte referenční kategorii vašeho motoru pro odečet Bn:", "Select the reference category of your engine to derive Bn:"), 
                             display_options, 
                             key="curve_choice_radio",
                             on_change=update_curve_idx)
@@ -1143,16 +1207,16 @@ with tab7:
     bn_val = bns[chosen_idx]
         
     if T_actual < 600 or T_actual > 1200:
-        st.warning(f"Zadaná teplota ohřívače ($T_T={T_actual}$ K) je mimo běžný rozsah empirických dat (600 - 1200 K). Hodnota Bealeova čísla byla odhadnuta extrapolací.")
+        st.warning(t(f"Zadaná teplota ohřívače ($T_T={T_actual}$ K) je mimo běžný rozsah empirických dat (600 - 1200 K). Hodnota Bealeova čísla byla odhadnuta extrapolací.", f"The set heater temperature ($T_H={T_actual}$ K) is outside the standard range of empirical data (600 - 1200 K). The Beale number was estimated by extrapolation."))
         
     P_beale = bn_val * p_mean_pa * vsz_m3 * freq_hz
     
     st.markdown("<hr style='margin: 15px 0;'>", unsafe_allow_html=True)
     
     cb1, cb2, cb3 = st.columns(3)
-    cb1.metric("Odečtené Bealeovo číslo (B_n)", f"{bn_val:.4f} [-]")
-    cb2.metric("Odhadovaný skutečný výkon", f"{P_beale/1000:.2f} kW")
-    cb3.metric("Poměr vůči ideálnímu výkonu P", f"{(P_beale / P_ind) * 100:.1f} %")
+    cb1.metric(t("Odečtené Bealeovo číslo (B_n)", "Derived Beale Number (B_n)"), f"{bn_val:.4f} [-]")
+    cb2.metric(t("Odhadovaný skutečný výkon", "Estimated Actual Power"), f"{P_beale/1000:.2f} kW")
+    cb3.metric(t("Poměr vůči ideálnímu výkonu P", "Ratio to Ideal Power P"), f"{(P_beale / P_ind) * 100:.1f} %")
 
     st.markdown("<br>", unsafe_allow_html=True)
 
@@ -1185,52 +1249,53 @@ with tab7:
     bbox_style_red = dict(boxstyle="round,pad=0.4", fc="white", ec="#d32f2f", alpha=0.9)
     bbox_style_mag = dict(boxstyle="round,pad=0.4", fc="white", ec=c_read, alpha=0.9)
 
-    ax_b.text(615, 0.229, r"$P_{skutečný} = B_n \cdot p_{stř} \cdot V_{SZ} \cdot f$", 
-              fontsize=13, va='bottom', bbox=dict(facecolor='white', alpha=0.9, edgecolor='#aaa', boxstyle='round,pad=0.5'))
+    formula_str = r"$P_{skutečný} = B_n \cdot p_{stř} \cdot V_{SZ} \cdot f$" if is_cz else r"$P_{actual} = B_n \cdot p_{mean} \cdot V_{SW} \cdot f$"
+    ax_b.text(615, 0.229, formula_str, fontsize=13, va='bottom', bbox=dict(facecolor='white', alpha=0.9, edgecolor='#aaa', boxstyle='round,pad=0.5'))
 
     T_plot_star = np.clip(T_actual, 600, 1200)
     ax_b.plot([T_plot_star, T_plot_star], [0, bn_val], color=c_read, linestyle=':', lw=1.5)
     ax_b.plot([600, T_plot_star], [bn_val, bn_val], color=c_read, linestyle=':', lw=1.5)
     ax_b.scatter(T_plot_star, bn_val, color=c_read, s=250, marker='*', zorder=15, edgecolors='black')
 
-    box_x = 1075 
-    ax_b.text(box_x, 0.13, f"       Aktuální model\n       Bn={bn_val:.3f}", 
+    box_x = 1080 
+    box_str = f"      Aktuální model\n      Bn={bn_val:.3f}" if is_cz else f"      Current model\n      Bn={bn_val:.3f}"
+    ax_b.text(box_x, 0.13, box_str, 
               fontsize=11, fontweight='bold', color=c_read, ha='left', va='center', 
               bbox=bbox_style_mag, zorder=14)
     ax_b.scatter(1090, 0.13, color=c_read, s=250, marker='*', zorder=15, edgecolors='black')
 
-    ax_b.annotate("Velké, dobře navržené\nvysoce účinné motory\ns dobrým chlazením", 
+    ax_b.annotate(t("Velké, dobře navržené\nvysoce účinné motory\ns dobrým chlazením", "Large, well-designed\nhighly efficient engines\nwith good cooling"), 
                   xy=(800, 0.170), xytext=(780, 0.190),
                   arrowprops=dict(arrowstyle="->", color='black', lw=0.8), 
                   fontsize=8, fontweight='bold', ha='center', bbox=bbox_style, multialignment='center')
                   
-    ax_b.annotate("Běžné, průměrně\nnavržené motory", 
+    ax_b.annotate(t("Běžné, průměrně\nnavržené motory", "Common, average-\ndesigned engines"), 
                   xy=(850, 0.126), xytext=(850, 0.150), 
                   arrowprops=dict(arrowstyle="->", color='black', lw=0.8), 
                   fontsize=8, fontweight='bold', ha='center', va='bottom', bbox=bbox_style, multialignment='center')
                   
-    ax_b.annotate("Menší, ekonomické motory\nse střední účinností navržené\npro dlouhou životnost nebo\nomezené chlazení", 
+    ax_b.annotate(t("Menší, ekonomické motory\nse střední účinností navržené\npro dlouhou životnost nebo\nomezené chlazení", "Smaller, economical engines\nwith moderate efficiency\ndesigned for long life\nor limited cooling"), 
                   xy=(800, 0.060), xytext=(800, 0.108), 
                   arrowprops=dict(arrowstyle="->", color='black', lw=0.8), 
                   fontsize=8, fontweight='bold', ha='left', va='top', bbox=bbox_style, multialignment='center')
 
-    ax_b.annotate("Motory s volnými písty\na velkými mrtvými objemy", 
+    ax_b.annotate(t("Motory s volnými písty\na velkými mrtvými objemy", "Free-piston engines\nwith large dead volumes"), 
                   xy=(800, 0.036), xytext=(800, 0.010), 
                   arrowprops=dict(arrowstyle="->", color='#d32f2f', lw=1.2), 
                   fontsize=8, fontweight='bold', color='#d32f2f', ha='left', va='bottom', bbox=bbox_style_red, multialignment='center')
 
-    ax_b.text(limit_ocel - 8, 0.085, "Limit běžné oceli", rotation=90, va='bottom', ha='right', fontsize=8, color='#444')
-    ax_b.text((limit_ocel + limit_super)/2, 0.01, "VYSOCE LEGOVANÉ\nOCELI", ha='center', va='center', fontsize=9, fontweight='bold', color='#f57f17')
-    ax_b.text(1125, 0.01, "KERAMIKA", ha='center', va='center', fontsize=9, fontweight='bold', color='#c62828')
+    ax_b.text(limit_ocel - 8, 0.085, t("Limit běžné oceli", "Standard steel limit"), rotation=90, va='bottom', ha='right', fontsize=8, color='#444')
+    ax_b.text((limit_ocel + limit_super)/2, 0.01, t("VYSOCE LEGOVANÉ\nOCELI", "HIGH-ALLOY\nSTEELS"), ha='center', va='center', fontsize=9, fontweight='bold', color='#f57f17')
+    ax_b.text(1125, 0.01, t("KERAMIKA", "CERAMICS"), ha='center', va='center', fontsize=9, fontweight='bold', color='#c62828')
 
     ax_b.set_xlim(600, 1200)
     ax_b.set_ylim(0, 0.26)
-    ax_b.set_xlabel('Teplota ohřívače $T_T$ [K]', fontsize=11, fontweight='bold')
-    ax_b.set_ylabel('Bealeovo číslo $B_n$ [-]', fontsize=11, fontweight='bold')
-    ax_b.set_title(r'Odečtení Bealeova čísla na základě teploty a referenční křivky', fontsize=14, pad=15)
+    ax_b.set_xlabel(t('Teplota ohřívače $T_T$ [K]', 'Heater temperature $T_H$ [K]'), fontsize=11, fontweight='bold')
+    ax_b.set_ylabel(t('Bealeovo číslo $B_n$ [-]', 'Beale number $B_n$ [-]'), fontsize=11, fontweight='bold')
+    ax_b.set_title(t(r'Odečtení Bealeova čísla na základě teploty a referenční křivky', r'Derivation of the Beale number based on temperature and reference curve'), fontsize=14, pad=15)
 
     fig_beale.tight_layout()
     st.pyplot(fig_beale)
     
     st.markdown("<hr style='margin: 10px 0;'>", unsafe_allow_html=True)
-    st.caption("Graf zrekonstruován z původní předlohy. **Zdroj:** MARTINI, William. *Stirling engine design manual*, 2004. Přetisk vydání z roku 1983. Honolulu: University press of the Pacific, ISBN: 1-4102-1604-7.")
+    st.caption(t("Graf zrekonstruován z původní předlohy. **Zdroj:** MARTINI, William. *Stirling engine design manual*, 2004. Přetisk vydání z roku 1983. Honolulu: University press of the Pacific, ISBN: 1-4102-1604-7.", "Graph reconstructed from original reference. **Source:** MARTINI, William. *Stirling engine design manual*, 2004. Reprint of the 1983 edition. Honolulu: University press of the Pacific, ISBN: 1-4102-1604-7."))
