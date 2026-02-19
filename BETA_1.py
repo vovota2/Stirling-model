@@ -1308,7 +1308,7 @@ col_f1, col_f2 = st.columns([3, 2])
 
 with col_f1:
     st.markdown(f"### 👨‍💻 {t('Autorství a licence', 'Author & License')}")
-    st.markdown(f"**Vojtěch Votava** © 2024–2026")
+    st.markdown(f"**Vojtěch Votava** © 2026")
     
     # Informace o licenci s úpravou na "studijní účely"
     st.markdown(
@@ -1330,5 +1330,6 @@ with col_f2:
     st.code(t(citation_cz, citation_en), language="text")
     st.caption(t("Kliknutím do pole výše a Ctrl+C citaci zkopírujete.", "Click inside the box above and press Ctrl+C to copy the citation."))
     
+
 
 
