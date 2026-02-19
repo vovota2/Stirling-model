@@ -1308,7 +1308,7 @@ col_f1, col_f2, col_f3 = st.columns([1.5, 2, 1.5])
 
 with col_f1:
     st.markdown(f"### 👨‍💻 {t('Autorství a licence', 'Author & License')}")
-    st.markdown(f"**Vojtěch Votava** © 2024–2026")
+    st.markdown(f"**Vojtěch Votava** © 2026")
     
     st.markdown(
         t("Tento software je šířen pod licencí **GNU GPLv3**. Zdrojový kód je volně dostupný pro úpravy a studijní účely.", 
@@ -1319,13 +1319,12 @@ with col_f1:
 with col_f2:
     st.markdown(f"### 📚 {t('Teoretický model', 'Theoretical Background')}")
     st.markdown(
-        t("Autorem matematické idealizace oběhu s polytropickými změnami (původně pro modifikaci alfa) je **Jiří Škorpík**.", 
-          "The author of the mathematical idealization of the cycle with polytropic processes (originally for the alpha modification) is **Jiří Škorpík**.")
+        t("Autorem matematické idealizace oběhu s polytropickými změnami (původně pro modifikaci alfa) je **Ing. Jiří Škorpík, Ph.D.**", 
+          "The author of the mathematical idealization of the cycle with polytropic processes (originally for the alpha modification) is **Ing. Jiří Škorpík, Ph.D.**")
     )
-    # Zdroj formátovaný jako citace (menším písmem)
     st.caption(
-        t("ŠKORPÍK, Jiří. *Příspěvek k návrhu Stirlingova motoru*, 2008. Disertační práce. Brno: VUT v Brně, Edice PhD Thesis, ISBN 978-80-214-3763-0.",
-          "ŠKORPÍK, Jiří. *Příspěvek k návrhu Stirlingova motoru*, 2008. PhD Thesis. Brno: BUT, Edice PhD Thesis, ISBN 978-80-214-3763-0.")
+        t("ŠKORPÍK, Jiří. Příspěvek k návrhu Stirlingova motoru, 2008. Disertační práce. Brno: VUT v Brně, Edice PhD Thesis, ISBN 978-80-214-3763-0.",
+          "ŠKORPÍK, Jiří. Příspěvek k návrhu Stirlingova motoru, 2008. PhD Thesis. Brno: BUT, Edice PhD Thesis, ISBN 978-80-214-3763-0.")
     )
 
 with col_f3:
@@ -1337,7 +1336,6 @@ with col_f3:
     
     st.code(t(citation_cz, citation_en), language="text")
     st.caption(t("Kliknutím do pole výše a Ctrl+C citaci zkopírujete.", "Click inside the box above and press Ctrl+C to copy the citation."))
-
 
 
 
