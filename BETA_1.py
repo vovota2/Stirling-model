@@ -1300,11 +1300,31 @@ with tab7:
     st.markdown("<hr style='margin: 10px 0;'>", unsafe_allow_html=True)
     st.caption(t("Graf zrekonstruován z původní předlohy. **Zdroj:** MARTINI, William. *Stirling engine design manual*, 2004. Přetisk vydání z roku 1983. Honolulu: University press of the Pacific, ISBN: 1-4102-1604-7.", "Graph reconstructed from original reference. **Source:** MARTINI, William. *Stirling engine design manual*, 2004. Reprint of the 1983 edition. Honolulu: University press of the Pacific, ISBN: 1-4102-1604-7."))
 
+# =============================================================================
+# PATIČKA: AUTORSTVÍ, LICENCE A CITACE 
+# =============================================================================
 st.markdown("---")
-st.markdown(
-    "<div style='text-align: center; color: #666; font-size: 0.85rem;'>" + 
-    t("Autor: Vojtěch Votava | Tato aplikace je open-source. Kódy jsou na ", 
-      "Author: Vojtěch Votava | This application is open-source. Code available on ") + 
-    "<a href='https://github.com/vovota2/Stirling-model' target='_blank'>GitHub</a>.</div>", 
-    unsafe_allow_html=True
-)
+col_f1, col_f2 = st.columns([3, 2])
+
+with col_f1:
+    st.markdown(f"### 👨‍💻 {t('Autorství a licence', 'Author & License')}")
+    st.markdown(f"**Vojtěch Votava** © 2024–2026")
+    
+    # Informace o licenci
+    st.markdown(
+        t("Tento software je šířen pod licencí **GNU GPLv3**. Zdrojový kód je volně dostupný pro další úpravy a studium.", 
+          "This software is distributed under the **GNU GPLv3** license. Source code is freely available for further modification and study.")
+    )
+    st.markdown(f"🔗 [GitHub Repository](https://github.com/vovota2/Stirling-model)")
+
+with col_f2:
+    st.markdown(f"### 📖 {t('Jak citovat (ISO 690)', 'How to cite (ISO 690)')}")
+    
+    # Definice citace podle ISO 690
+    # Formát: AUTOR. Název [online]. Rok [cit. RRRR-MM-DD]. Dostupné z: URL
+    today = time.strftime("%Y-%m-%d")
+    citation_cz = f"VOTAVA, Vojtěch. *Stirling Engine Beta Model* [online]. 2026 [cit. {today}]. Dostupné z: https://stirling-engine-model.streamlit.app/"
+    citation_en = f"VOTAVA, Vojtěch. *Stirling Engine Beta Model* [online]. 2026 [cited {today}]. Available from: https://stirling-engine-model.streamlit.app/"
+    
+    st.code(t(citation_cz, citation_en), language="text")
+    st.caption(t("Kliknutím do pole výše a Ctrl+C citaci zkopírujete.", "Click inside the box above and press Ctrl+C to copy the citation."))
