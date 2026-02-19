@@ -1301,16 +1301,15 @@ with tab7:
     st.caption(t("Graf zrekonstruován z původní předlohy. **Zdroj:** MARTINI, William. *Stirling engine design manual*, 2004. Přetisk vydání z roku 1983. Honolulu: University press of the Pacific, ISBN: 1-4102-1604-7.", "Graph reconstructed from original reference. **Source:** MARTINI, William. *Stirling engine design manual*, 2004. Reprint of the 1983 edition. Honolulu: University press of the Pacific, ISBN: 1-4102-1604-7."))
 
 # =============================================================================
-# PATIČKA: AUTORSTVÍ, LICENCE A CITACE DLE ISO 690
+# PATIČKA: AUTORSTVÍ, TEORIE, LICENCE A CITACE
 # =============================================================================
 st.markdown("---")
-col_f1, col_f2 = st.columns([3, 2])
+col_f1, col_f2, col_f3 = st.columns([1.5, 2, 1.5])
 
 with col_f1:
     st.markdown(f"### 👨‍💻 {t('Autorství a licence', 'Author & License')}")
-    st.markdown(f"**Vojtěch Votava** © 2026")
+    st.markdown(f"**Vojtěch Votava** © 2024–2026")
     
-    # Informace o licenci s úpravou na "studijní účely"
     st.markdown(
         t("Tento software je šířen pod licencí **GNU GPLv3**. Zdrojový kód je volně dostupný pro úpravy a studijní účely.", 
           "This software is distributed under the **GNU GPLv3** license. Source code is freely available for modifications and study purposes.")
@@ -1318,18 +1317,26 @@ with col_f1:
     st.markdown(f"🔗 [GitHub Repository](https://github.com/vovota2/Stirling-model)")
 
 with col_f2:
-    st.markdown(f"### 📖 {t('Jak citovat (ISO 690)', 'How to cite (ISO 690)')}")
+    st.markdown(f"### 📚 {t('Teoretický model', 'Theoretical Background')}")
+    st.markdown(
+        t("Autorem matematické idealizace oběhu s polytropickými změnami (původně pro modifikaci alfa) je **Jiří Škorpík**.", 
+          "The author of the mathematical idealization of the cycle with polytropic processes (originally for the alpha modification) is **Jiří Škorpík**.")
+    )
+    # Zdroj formátovaný jako citace (menším písmem)
+    st.caption(
+        t("ŠKORPÍK, Jiří. *Příspěvek k návrhu Stirlingova motoru*, 2008. Disertační práce. Brno: VUT v Brně, Edice PhD Thesis, ISBN 978-80-214-3763-0.",
+          "ŠKORPÍK, Jiří. *Příspěvek k návrhu Stirlingova motoru*, 2008. PhD Thesis. Brno: BUT, Edice PhD Thesis, ISBN 978-80-214-3763-0.")
+    )
+
+with col_f3:
+    st.markdown(f"### 📖 {t('Jak citovat', 'How to cite')}")
     
-    # Automatické datum citace
     today = time.strftime("%Y-%m-%d")
-    
-    # Citace bez hvězdiček, aby v bloku st.code vypadala čistě
     citation_cz = f"VOTAVA, Vojtěch. Stirling Engine Beta Model [online]. 2026 [cit. {today}]. Dostupné z: https://stirling-engine-model.streamlit.app/"
     citation_en = f"VOTAVA, Vojtěch. Stirling Engine Beta Model [online]. 2026 [cited {today}]. Available from: https://stirling-engine-model.streamlit.app/"
     
     st.code(t(citation_cz, citation_en), language="text")
     st.caption(t("Kliknutím do pole výše a Ctrl+C citaci zkopírujete.", "Click inside the box above and press Ctrl+C to copy the citation."))
-    
 
 
 
