@@ -1300,3 +1300,11 @@ with tab7:
     st.markdown("<hr style='margin: 10px 0;'>", unsafe_allow_html=True)
     st.caption(t("Graf zrekonstruován z původní předlohy. **Zdroj:** MARTINI, William. *Stirling engine design manual*, 2004. Přetisk vydání z roku 1983. Honolulu: University press of the Pacific, ISBN: 1-4102-1604-7.", "Graph reconstructed from original reference. **Source:** MARTINI, William. *Stirling engine design manual*, 2004. Reprint of the 1983 edition. Honolulu: University press of the Pacific, ISBN: 1-4102-1604-7."))
 
+st.markdown("---")
+st.markdown(
+    "<div style='text-align: center; color: #666; font-size: 0.85rem;'>" + 
+    t("Autor: Vojtěch Votava | Tato aplikace je open-source. Kódy jsou na ", 
+      "Author: Vojtěch Votava | This application is open-source. Code available on ") + 
+    "<a href='https://github.com/vovota2/Stirling-model' target='_blank'>GitHub</a>.</div>", 
+    unsafe_allow_html=True
+)
