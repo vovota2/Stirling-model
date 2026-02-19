@@ -27,7 +27,7 @@ st.set_page_config(page_title="Stirling Beta Model", layout="wide")
 # =============================================================================
 # JAZYKOVÝ PŘEPÍNAČ A FUNKCE PŘEKLADU
 # =============================================================================
-lang_choice = st.sidebar.radio("Lang", ["CZ", "EN"], horizontal=True, label_visibility="collapsed")
+lang_choice = st.sidebar.radio("Lang", ["EN", "CZ"], horizontal=True, label_visibility="collapsed")
 is_cz = lang_choice == "CZ"
 
 def t(cz_text, en_text):
@@ -1299,3 +1299,4 @@ with tab7:
     
     st.markdown("<hr style='margin: 10px 0;'>", unsafe_allow_html=True)
     st.caption(t("Graf zrekonstruován z původní předlohy. **Zdroj:** MARTINI, William. *Stirling engine design manual*, 2004. Přetisk vydání z roku 1983. Honolulu: University press of the Pacific, ISBN: 1-4102-1604-7.", "Graph reconstructed from original reference. **Source:** MARTINI, William. *Stirling engine design manual*, 2004. Reprint of the 1983 edition. Honolulu: University press of the Pacific, ISBN: 1-4102-1604-7."))
+
