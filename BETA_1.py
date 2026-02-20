@@ -34,7 +34,7 @@ def t(cz_text, en_text):
     return cz_text if is_cz else en_text
 
 # =============================================================================
-# CSS ÚPRAVY
+# CSS ÚPRAVY (dynamický text na tlačítku podle jazyka)
 # =============================================================================
 btn_subtext = "pro nově zvolené parametry" if is_cz else "for newly selected parameters"
 
@@ -127,7 +127,7 @@ st.markdown(f"""
 # =============================================================================
 # POMOCNÁ FUNKCE PRO VSTUPY
 # =============================================================================
-def smart_input(label, min_val, slider_max, default_val, step, key_id):
+def smart_input(label, min_val, slider_max, default_val, step, key_id, help_text=None):
     if f"{key_id}_num" not in st.session_state:
         st.session_state[f"{key_id}_num"] = default_val
     if f"{key_id}_slide" not in st.session_state:
@@ -140,7 +140,7 @@ def smart_input(label, min_val, slider_max, default_val, step, key_id):
         val = st.session_state[f"{key_id}_num"]
         st.session_state[f"{key_id}_slide"] = min(val, slider_max)
 
-    st.markdown(f"**{label}**")
+    st.markdown(f"**{label}**", help=help_text)
     c1, c2 = st.columns([2, 1])
     with c1:
         st.slider("S", float(min_val), float(slider_max), step=float(step), key=f"{key_id}_slide", on_change=update_from_slider, label_visibility="collapsed")
@@ -335,7 +335,11 @@ with st.sidebar.expander(t("1. Provozní parametry", "1. Operating Parameters"),
     n_poly = smart_input(t(r"Polytropický exponent $n$ (-)", r"Polytropic exponent $n$ (-)"), 1.0, 1.67, 1.4, 0.01, "n_poly")
 
 with st.sidebar.expander(t("2. Geometrie", "2. Geometry"), expanded=False):
-    VTZ_ccm = smart_input(t(r"Zdvihový objem $V_{TZ}$ (cm$^3$)", r"Swept volume $V_{SW}$ (cm$^3$)"), 10.0, 1000.0, 118.58, 0.01, "vol_main")
+    VTZ_ccm = smart_input(
+        t(r"Zdvihový objem $V_{TZ}$ (cm$^3$)", r"Swept volume $V_{SW}$ (cm$^3$)"), 
+        10.0, 1000.0, 118.58, 0.01, "vol_main",
+        help_text=t("Zdvihový objem přemisťovacího pístu.", "Swept volume of the displacer.")
+    )
     VTZ = VTZ_ccm * 1e-6 
     
     st.markdown("---")
@@ -343,22 +347,58 @@ with st.sidebar.expander(t("2. Geometrie", "2. Geometry"), expanded=False):
                          [t("Poměry (X)", "Ratios (X)"), t("Objemy (cm³)", "Volumes (cm³)")], horizontal=True)
     
     if geom_mode in ["Poměry (X)", "Ratios (X)"]:
-        XSZ = smart_input(t(r"Poměr $X_{SZ} (= V_{SZ} / V_{TZ})$", r"Ratio $X_{CW} (= V_{CW} / V_{SW})$"), 0.1, 5.0, 1.5, 0.1, "xsz")
-        XR  = smart_input(t(r"Poměr $X_R (= V_R / V_{TZ})$", r"Ratio $X_R (= V_R / V_{SW})$"), 0.1, 10.0, 2.0, 0.1, "xr")
-        XTM = smart_input(t(r"Poměr $X_{TM}$ (Mrtvý teplý)", r"Ratio $X_{HD}$ (Hot dead vol)"), 0.1, 5.0, 1.2, 0.1, "xtm")
-        XSM = smart_input(t(r"Poměr $X_{SM}$ (Mrtvý studený)", r"Ratio $X_{CD}$ (Cold dead vol)"), 0.1, 5.0, 2.5, 0.1, "xsm")
+        XSZ = smart_input(
+            t(r"Poměr $X_{SZ} (= V_{SZ} / V_{TZ})$", r"Ratio $X_{CW} (= V_{CW} / V_{SW})$"), 
+            0.1, 5.0, 1.5, 0.1, "xsz",
+            help_text=t("Zdvihový objem pracovního pístu - studená strana (vyjádřený jako poměr vůči V_TZ).", "Swept volume of the power piston - cold side (expressed as a ratio to V_SW).")
+        )
+        XR  = smart_input(
+            t(r"Poměr $X_R (= V_R / V_{TZ})$", r"Ratio $X_R (= V_R / V_{SW})$"), 
+            0.1, 10.0, 2.0, 0.1, "xr",
+            help_text=t("Vnitřní mrtvý objem regenerátoru (vyjádřený jako poměr vůči V_TZ).", "Internal dead volume of the regenerator (expressed as a ratio to V_SW).")
+        )
+        XTM = smart_input(
+            t(r"Poměr $X_{TM}$ (Mrtvý teplý)", r"Ratio $X_{HD}$ (Hot dead vol)"), 
+            0.1, 5.0, 1.2, 0.1, "xtm",
+            help_text=t("Mrtvý objem teplé části, např. ohřívač a propojovací kanály (vyjádřený jako poměr vůči V_TZ).", "Hot side dead volume, e.g., heater and connecting channels (expressed as a ratio to V_SW).")
+        )
+        XSM = smart_input(
+            t(r"Poměr $X_{SM}$ (Mrtvý studený)", r"Ratio $X_{CD}$ (Cold dead vol)"), 
+            0.1, 5.0, 2.5, 0.1, "xsm",
+            help_text=t("Mrtvý objem studené části, např. chladič a propojovací kanály (vyjádřený jako poměr vůči V_TZ).", "Cold side dead volume, e.g., cooler and connecting channels (expressed as a ratio to V_SW).")
+        )
     else:
-        VSZ_ccm = smart_input(t(r"Objem $V_{SZ}$ (cm³)", r"Volume $V_{CW}$ (cm³)"), 1.0, 1000.0, 177.87, 1.0, "vsz_ccm")
-        VR_ccm  = smart_input(t(r"Objem $V_R$ (cm³)", r"Volume $V_R$ (cm³)"), 1.0, 1000.0, 237.16, 1.0, "vr_ccm")
-        VTM_ccm = smart_input(t(r"Objem $V_{TM}$ (cm³)", r"Volume $V_{HD}$ (cm³)"), 1.0, 1000.0, 142.30, 1.0, "vtm_ccm")
-        VSM_ccm = smart_input(t(r"Objem $V_{SM}$ (cm³)", r"Volume $V_{CD}$ (cm³)"), 1.0, 1000.0, 296.45, 1.0, "vsm_ccm")
+        VSZ_ccm = smart_input(
+            t(r"Objem $V_{SZ}$ (cm³)", r"Volume $V_{CW}$ (cm³)"), 
+            1.0, 1000.0, 177.87, 1.0, "vsz_ccm",
+            help_text=t("Zdvihový objem pracovního pístu - studená strana.", "Swept volume of the power piston - cold side.")
+        )
+        VR_ccm  = smart_input(
+            t(r"Objem $V_R$ (cm³)", r"Volume $V_R$ (cm³)"), 
+            1.0, 1000.0, 237.16, 1.0, "vr_ccm",
+            help_text=t("Vnitřní mrtvý objem regenerátoru.", "Internal dead volume of the regenerator.")
+        )
+        VTM_ccm = smart_input(
+            t(r"Objem $V_{TM}$ (cm³)", r"Volume $V_{HD}$ (cm³)"), 
+            1.0, 1000.0, 142.30, 1.0, "vtm_ccm",
+            help_text=t("Mrtvý objem teplé části (např. ohřívač a propojovací kanály).", "Hot side dead volume (e.g., heater and connecting channels).")
+        )
+        VSM_ccm = smart_input(
+            t(r"Objem $V_{SM}$ (cm³)", r"Volume $V_{CD}$ (cm³)"), 
+            1.0, 1000.0, 296.45, 1.0, "vsm_ccm",
+            help_text=t("Mrtvý objem studené části (např. chladič a propojovací kanály).", "Cold side dead volume (e.g., cooler and connecting channels).")
+        )
         XSZ = VSZ_ccm / VTZ_ccm
         XR = VR_ccm / VTZ_ccm
         XTM = VTM_ccm / VTZ_ccm
         XSM = VSM_ccm / VTZ_ccm
         
     st.markdown("---")
-    vp_percent = smart_input(t(r"Objem překryvu zdvihů $V_P$ (% ideálu)", r"Overlapping volume $V_P$ (% of ideal)"), 0, 100, 0, 1, "vp_perc")
+    vp_percent = smart_input(
+        t(r"Objem překryvu zdvihů $V_P$ (% ideálu)", r"Overlapping volume $V_P$ (% of ideal)"), 
+        0, 100, 0, 1, "vp_perc",
+        help_text=t("Objem překryvu zdvihů mezi teplým a studeným pístem vyjádřený v procentech ideálního překryvu.", "Overlapping volume between the hot and cold piston expressed as a percentage of the ideal overlap.")
+    )
 
 with st.sidebar.expander(t("3. Pracovní látka", "3. Working Fluid"), expanded=False):
     plyn = st.radio(t("Zvolte médium", "Select medium"), [t("Helium", "Helium"), t("Vodík", "Hydrogen"), t("Vzduch", "Air")])
@@ -1336,6 +1376,3 @@ with col_f3:
     
     st.code(t(citation_cz, citation_en), language="text")
     st.caption(t("Kliknutím do pole výše a Ctrl+C citaci zkopírujete.", "Click inside the box above and press Ctrl+C to copy the citation."))
-
-
-
