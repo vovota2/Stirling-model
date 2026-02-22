@@ -42,9 +42,9 @@ if 'visit_logged' not in st.session_state:
         
         # Uložení informace, že tento uživatel už byl zapsán (aby se nezapisoval při každém kliknutí)
         st.session_state.visit_logged = True
-    except Exception as e:
-        # Pokud se něco pokazí (např. chyba Googlu), aplikace nespadne, jen chybu vypíše do logu
-        print(f"Chyba zápisu do statistik: {e}")
+except Exception as e:
+        # TENTO ŘÁDEK ZMĚŇ, aby se chyba vypsala přímo na web:
+        st.error(f"Chyba zápisu do statistik: {e}")
 # -------------------------------------------------------
 
 # --- FIX PRO NUMPY VERZE ---
@@ -1419,6 +1419,7 @@ with col_f3:
     
     st.code(t(citation_cz, citation_en), language="text")
     st.caption(t("Kliknutím do pole výše a Ctrl+C citaci zkopírujete.", "Click inside the box above and press Ctrl+C to copy the citation."))
+
 
 
 
