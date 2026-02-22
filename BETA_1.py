@@ -15,6 +15,38 @@ import tempfile
 import os
 import time
 
+import json
+import gspread
+from datetime import datetime
+import pytz
+
+# --- ZÁPIS STATISTIKY NÁVŠTĚVNOSTI DO GOOGLE TABULKY ---
+if 'visit_logged' not in st.session_state:
+    try:
+        # Načtení tajných klíčů ze Streamlit Secrets
+        creds_dict = json.loads(st.secrets["GOOGLE_CREDENTIALS"])
+        gc = gspread.service_account_from_dict(creds_dict)
+        
+        # Otevření tvé tabulky (musí se jmenovat přesně takto)
+        sheet = gc.open("Stirling_Statistiky").sheet1
+        
+        # Zjištění aktuálního času v ČR
+        tz = pytz.timezone('Europe/Prague')
+        current_time = datetime.now(tz).strftime("%Y-%m-%d %H:%M:%S")
+        
+        # Zjištění aktuálního jazyka
+        current_lang = st.session_state.get('lang', 'Neznámý') 
+        
+        # Přidání nového řádku do Google Tabulky
+        sheet.append_row([current_time, current_lang])
+        
+        # Uložení informace, že tento uživatel už byl zapsán (aby se nezapisoval při každém kliknutí)
+        st.session_state.visit_logged = True
+    except Exception as e:
+        # Pokud se něco pokazí (např. chyba Googlu), aplikace nespadne, jen chybu vypíše do logu
+        print(f"Chyba zápisu do statistik: {e}")
+# -------------------------------------------------------
+
 # --- FIX PRO NUMPY VERZE ---
 if hasattr(np, 'trapezoid'):
     integrate = np.trapezoid
@@ -1387,6 +1419,7 @@ with col_f3:
     
     st.code(t(citation_cz, citation_en), language="text")
     st.caption(t("Kliknutím do pole výše a Ctrl+C citaci zkopírujete.", "Click inside the box above and press Ctrl+C to copy the citation."))
+
 
 
 
