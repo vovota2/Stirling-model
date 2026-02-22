@@ -19,6 +19,7 @@ import json
 import gspread
 import pytz
 from datetime import datetime
+import urllib.request
 
 # --- FIX PRO NUMPY VERZE ---
 if hasattr(np, 'trapezoid'):
@@ -1402,18 +1403,32 @@ with col_f1:
           "This software is distributed under the **GNU GPLv3** license. Source code is freely available for modifications and study purposes.")
     )
     st.markdown(f"🔗 [GitHub Repository](https://github.com/vovota2/Stirling-model)")
-# Text pro odznáček (CZ verze je URL-kódovaná kvůli 'í')
-    badge_text = t("Zobrazen%C3%AD", "Views")
-    
-    # HTML Počítadlo zobrazení (přizpůsobuje se jazyku)
-    st.markdown(
-        f"""
-        <a href="https://github.com/vovota2/Stirling-model" target="_blank">
-            <img src="https://visitor-badge.laobi.icu/badge?page_id=vovota2.stirling-engine-model&left_text={badge_text}" alt="Počítadlo zobrazení / View Counter">
-        </a>
-        """, 
-        unsafe_allow_html=True
-    )
+# --- ZOBRAZENÍ POČÍTADLA VIEWS (BEZ FALEŠNÉHO NAVYŠOVÁNÍ PŘI ZMĚNĚ JAZYKA) ---
+    if 'badge_b64' not in st.session_state:
+        import urllib.request
+        import base64
+        try:
+            # Necháme natvrdo text "Views", protože se to stáhne jen jednou
+            url = "https://visitor-badge.laobi.icu/badge?page_id=vovota2.stirling-engine-model&left_text=Views"
+            req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+            with urllib.request.urlopen(req) as response:
+                svg_data = response.read()
+                # Převedeme SVG odznáček na zakódovaný text, který se uloží do paměti
+                st.session_state.badge_b64 = base64.b64encode(svg_data).decode('utf-8')
+        except Exception:
+            # Pokud by měla služba výpadek, webovka nespadne
+            st.session_state.badge_b64 = ""
+
+    # Vykreslení odznáčku rovnou z paměti (prohlížeč už na službu nic neposílá)
+    if st.session_state.badge_b64:
+        st.markdown(
+            f"""
+            <a href="https://github.com/vovota2/Stirling-model" target="_blank">
+                <img src="data:image/svg+xml;base64,{st.session_state.badge_b64}" alt="Views Counter">
+            </a>
+            """, 
+            unsafe_allow_html=True
+        )
 with col_f2:
     st.markdown(f"### 📚 {t('Teoretický model', 'Theoretical Background')}")
     st.markdown(
@@ -1434,11 +1449,6 @@ with col_f3:
     
     st.code(t(citation_cz, citation_en), language="text")
     st.caption(t("Kliknutím do pole výše a Ctrl+C citaci zkopírujete.", "Click inside the box above and press Ctrl+C to copy the citation."))
-
-
-
-
-
 
 
 
