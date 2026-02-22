@@ -20,27 +20,7 @@ import gspread
 from datetime import datetime
 import pytz
 
-# --- ZÁPIS STATISTIKY NÁVŠTĚVNOSTI DO GOOGLE TABULKY ---
-if 'visit_logged' not in st.session_state:
-    try:
-        # Vše pod try musí být odsazené o 4 mezery doprava
-        creds_dict = json.loads(st.secrets["GOOGLE_CREDENTIALS"])
-        gc = gspread.service_account_from_dict(creds_dict)
-        
-        # Otevření tabulky (zkontroluj název!)
-        sheet = gc.open("Stirling_Statistiky").sheet1
-        
-        tz = pytz.timezone('Europe/Prague')
-        current_time = datetime.now(tz).strftime("%Y-%m-%d %H:%M:%S")
-        current_lang = st.session_state.get('lang', 'Neznámý')
-        
-        sheet.append_row([current_time, current_lang])
-        st.session_state.visit_logged = True
-        
-    except Exception as e:
-        # Slovo except musí být vertikálně PŘESNĚ pod slovem try
-        st.error(f"Chyba zápisu do statistik: {e}")
-# -------------------------------------------------------
+
 
 # --- FIX PRO NUMPY VERZE ---
 if hasattr(np, 'trapezoid'):
@@ -59,6 +39,37 @@ is_cz = lang_choice == "CZ"
 
 def t(cz_text, en_text):
     return cz_text if is_cz else en_text
+
+import json
+import gspread
+from datetime import datetime
+import pytz
+
+# --- 1. UJISTI SE, ŽE JAZYK JE INICIALIZOVÁN ---
+# Pokud uživatel ještě nic nevybral, nastavíme default (angličtinu)
+if 'lang' not in st.session_state:
+    st.session_state['lang'] = 'English'
+
+# --- 2. ZÁPIS STATISTIKY (PROBĚHNE JEN JEDNOU ZA RELACI) ---
+if 'visit_logged' not in st.session_state:
+    try:
+        creds_dict = json.loads(st.secrets["GOOGLE_CREDENTIALS"])
+        gc = gspread.service_account_from_dict(creds_dict)
+        sheet = gc.open("Stirling_Statistiky").sheet1
+        
+        tz = pytz.timezone('Europe/Prague')
+        current_time = datetime.now(tz).strftime("%Y-%m-%d %H:%M:%S")
+        
+        # Tady načteme aktuálně nastavený jazyk ze session_state
+        # Ujisti se, že tvůj přepínač používá stejný klíč 'lang'
+        current_lang = st.session_state['lang']
+        
+        sheet.append_row([current_time, current_lang])
+        st.session_state.visit_logged = True
+    except Exception as e:
+        # Tady to raději necháme jen v logu, aby to uživatele neotravovalo, 
+        # až uvidíš, že to funguje.
+        print(f"Chyba zápisu do statistik: {e}")
 
 # =============================================================================
 # CSS ÚPRAVY (dynamický text na tlačítku podle jazyka)
@@ -1414,6 +1425,7 @@ with col_f3:
     
     st.code(t(citation_cz, citation_en), language="text")
     st.caption(t("Kliknutím do pole výše a Ctrl+C citaci zkopírujete.", "Click inside the box above and press Ctrl+C to copy the citation."))
+
 
 
 
