@@ -52,19 +52,34 @@ def zapis_do_tabulky(jazyk, typ_akce):
         sheet.append_row([current_time, jazyk, typ_akce])
     except Exception:
         pass # Ignorujeme chyby, aby nespadla aplikace
-
 # =============================================================================
-# LOGOVÁNÍ NÁVŠTĚVY A ZMĚNY JAZYKA
+# LOGOVÁNÍ SKUTEČNÉ AKTIVITY (JEDEN ZÁPIS NA RELACI)
 # =============================================================================
-# 1. První načtení (Může to být bot i reálný člověk)
-if 'last_logged_lang' not in st.session_state:
-    st.session_state.last_logged_lang = lang_choice
-    zapis_do_tabulky(lang_choice, "První načtení (možný bot)")
+# 1. Příprava proměnných při prvním načtení
+if 'pocet_nacteni' not in st.session_state:
+    st.session_state.pocet_nacteni = 0
+if 'uz_zapsano' not in st.session_state:
+    st.session_state.uz_zapsano = False
+if 'puvodni_jazyk' not in st.session_state:
+    st.session_state.puvodni_jazyk = lang_choice
 
-# 2. Reálný uživatel, který prokazatelně změnil jazyk
-elif st.session_state.last_logged_lang != lang_choice:
-    zapis_do_tabulky(lang_choice, "Změna jazyka (REÁLNÝ UŽIVATEL)")
-    st.session_state.last_logged_lang = lang_choice
+# 2. Přičteme průchod (Bot zůstane navždy na čísle 1, protože na nic neklikne)
+st.session_state.pocet_nacteni += 1
+
+# 3. Zápis do tabulky: Provádí se JEN KDYŽ uživatel něco udělá (>1) a JEN JEDNOU
+if st.session_state.pocet_nacteni > 1 and not st.session_state.uz_zapsano:
+    
+    # Zjistíme, jestli první věc, kterou udělal, byla zrovna změna jazyka
+    if st.session_state.puvodni_jazyk != lang_choice:
+        typ_akce = "Změna jazyka"
+    else:
+        typ_akce = "Aktivita v aplikaci" # Např. pohnul posuvníkem
+        
+    zapis_do_tabulky(lang_choice, typ_akce)
+    
+    # Zamkneme zápis pro tohoto uživatele, ať tam neudělá 100 řádků
+    st.session_state.uz_zapsano = True
+# =============================================================================
 # =============================================================================
 # CSS ÚPRAVY (dynamický text na tlačítku podle jazyka)
 # =============================================================================
@@ -1419,6 +1434,7 @@ with col_f3:
     
     st.code(t(citation_cz, citation_en), language="text")
     st.caption(t("Kliknutím do pole výše a Ctrl+C citaci zkopírujete.", "Click inside the box above and press Ctrl+C to copy the citation."))
+
 
 
 
