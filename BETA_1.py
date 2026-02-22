@@ -1355,7 +1355,15 @@ with col_f1:
           "This software is distributed under the **GNU GPLv3** license. Source code is freely available for modifications and study purposes.")
     )
     st.markdown(f"🔗 [GitHub Repository](https://github.com/vovota2/Stirling-model)")
-st.markdown("[![Zobrazení](https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https%3A%2F%2Fstirling-engine-model.streamlit.app&count_bg=%231F77B4&title_bg=%23555555&icon=&icon_color=%23E7E7E7&title=Zobrazen%C3%AD&edge_flat=true)](https://hits.seeyoufarm.com)")
+# HTML Počítadlo zobrazení
+    st.markdown(
+        """
+        <a href="https://github.com/vovota2/Stirling-model" target="_blank">
+            <img src="https://visitor-badge.laobi.icu/badge?page_id=vovota2.stirling-engine-model&left_text=Zobrazen%C3%AD" alt="Počítadlo zobrazení">
+        </a>
+        """, 
+        unsafe_allow_html=True
+    )
 with col_f2:
     st.markdown(f"### 📚 {t('Teoretický model', 'Theoretical Background')}")
     st.markdown(
@@ -1376,4 +1384,5 @@ with col_f3:
     
     st.code(t(citation_cz, citation_en), language="text")
     st.caption(t("Kliknutím do pole výše a Ctrl+C citaci zkopírujete.", "Click inside the box above and press Ctrl+C to copy the citation."))
+
 
