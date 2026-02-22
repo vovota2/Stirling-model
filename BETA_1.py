@@ -1355,11 +1355,14 @@ with col_f1:
           "This software is distributed under the **GNU GPLv3** license. Source code is freely available for modifications and study purposes.")
     )
     st.markdown(f"🔗 [GitHub Repository](https://github.com/vovota2/Stirling-model)")
-# HTML Počítadlo zobrazení
+# Text pro odznáček (CZ verze je URL-kódovaná kvůli 'í')
+    badge_text = t("Zobrazen%C3%AD", "Views")
+    
+    # HTML Počítadlo zobrazení (přizpůsobuje se jazyku)
     st.markdown(
-        """
+        f"""
         <a href="https://github.com/vovota2/Stirling-model" target="_blank">
-            <img src="https://visitor-badge.laobi.icu/badge?page_id=vovota2.stirling-engine-model&left_text=Zobrazen%C3%AD" alt="Počítadlo zobrazení">
+            <img src="https://visitor-badge.laobi.icu/badge?page_id=vovota2.stirling-engine-model&left_text={badge_text}" alt="Počítadlo zobrazení / View Counter">
         </a>
         """, 
         unsafe_allow_html=True
@@ -1384,5 +1387,6 @@ with col_f3:
     
     st.code(t(citation_cz, citation_en), language="text")
     st.caption(t("Kliknutím do pole výše a Ctrl+C citaci zkopírujete.", "Click inside the box above and press Ctrl+C to copy the citation."))
+
 
 
