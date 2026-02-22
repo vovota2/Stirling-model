@@ -23,27 +23,22 @@ import pytz
 # --- ZÁPIS STATISTIKY NÁVŠTĚVNOSTI DO GOOGLE TABULKY ---
 if 'visit_logged' not in st.session_state:
     try:
-        # Načtení tajných klíčů ze Streamlit Secrets
+        # Vše pod try musí být odsazené o 4 mezery doprava
         creds_dict = json.loads(st.secrets["GOOGLE_CREDENTIALS"])
         gc = gspread.service_account_from_dict(creds_dict)
         
-        # Otevření tvé tabulky (musí se jmenovat přesně takto)
+        # Otevření tabulky (zkontroluj název!)
         sheet = gc.open("Stirling_Statistiky").sheet1
         
-        # Zjištění aktuálního času v ČR
         tz = pytz.timezone('Europe/Prague')
         current_time = datetime.now(tz).strftime("%Y-%m-%d %H:%M:%S")
+        current_lang = st.session_state.get('lang', 'Neznámý')
         
-        # Zjištění aktuálního jazyka
-        current_lang = st.session_state.get('lang', 'Neznámý') 
-        
-        # Přidání nového řádku do Google Tabulky
         sheet.append_row([current_time, current_lang])
-        
-        # Uložení informace, že tento uživatel už byl zapsán (aby se nezapisoval při každém kliknutí)
         st.session_state.visit_logged = True
-except Exception as e:
-        # TENTO ŘÁDEK ZMĚŇ, aby se chyba vypsala přímo na web:
+        
+    except Exception as e:
+        # Slovo except musí být vertikálně PŘESNĚ pod slovem try
         st.error(f"Chyba zápisu do statistik: {e}")
 # -------------------------------------------------------
 
@@ -1419,6 +1414,7 @@ with col_f3:
     
     st.code(t(citation_cz, citation_en), language="text")
     st.caption(t("Kliknutím do pole výše a Ctrl+C citaci zkopírujete.", "Click inside the box above and press Ctrl+C to copy the citation."))
+
 
 
 
