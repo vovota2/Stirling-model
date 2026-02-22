@@ -3,4 +3,7 @@ numpy
 pandas
 plotly
 matplotlib
+
 scipy
+gspread
+pytz
