@@ -38,16 +38,10 @@ is_cz = lang_choice == "CZ"
 def t(cz_text, en_text):
     return cz_text if is_cz else en_text
 
-
-
-# --- LOGOVÁNÍ NÁVŠTĚV A JAZYKA (Vložte pod funkci def t) ---
-if 'last_logged_lang' not in st.session_state:
-    st.session_state.last_logged_lang = None
-
-# Použijeme tvou proměnnou lang_choice, kterou už máš definovanou výše
-current_lang = lang_choice 
-
-if st.session_state.last_logged_lang != current_lang:
+# =============================================================================
+# ZÁPIS DO GOOGLE TABULKY (FUNKCE)
+# =============================================================================
+def zapis_do_tabulky(jazyk, typ_akce):
     try:
         creds_dict = json.loads(st.secrets["GOOGLE_CREDENTIALS"])
         gc = gspread.service_account_from_dict(creds_dict)
@@ -55,16 +49,22 @@ if st.session_state.last_logged_lang != current_lang:
         
         tz = pytz.timezone('Europe/Prague')
         current_time = datetime.now(tz).strftime("%Y-%m-%d %H:%M:%S")
-        
-        # Rozlišíme, jestli je to příchod nebo jen přepnutí vlaječky
-        entry_type = "První přístup" if st.session_state.last_logged_lang is None else "Změna jazyka"
-        
-        sheet.append_row([current_time, current_lang, entry_type])
-        st.session_state.last_logged_lang = current_lang
-    except Exception as e:
-        # Tady to vypíšeme jen do konzole, aby to nerušilo uživatele
-        print(f"Statistiky Error: {e}")
+        sheet.append_row([current_time, jazyk, typ_akce])
+    except Exception:
+        pass # Ignorujeme chyby, aby nespadla aplikace
 
+# =============================================================================
+# LOGOVÁNÍ NÁVŠTĚVY A ZMĚNY JAZYKA
+# =============================================================================
+# 1. První načtení (Může to být bot i reálný člověk)
+if 'last_logged_lang' not in st.session_state:
+    st.session_state.last_logged_lang = lang_choice
+    zapis_do_tabulky(lang_choice, "První načtení (možný bot)")
+
+# 2. Reálný uživatel, který prokazatelně změnil jazyk
+elif st.session_state.last_logged_lang != lang_choice:
+    zapis_do_tabulky(lang_choice, "Změna jazyka (REÁLNÝ UŽIVATEL)")
+    st.session_state.last_logged_lang = lang_choice
 # =============================================================================
 # CSS ÚPRAVY (dynamický text na tlačítku podle jazyka)
 # =============================================================================
@@ -1419,6 +1419,7 @@ with col_f3:
     
     st.code(t(citation_cz, citation_en), language="text")
     st.caption(t("Kliknutím do pole výše a Ctrl+C citaci zkopírujete.", "Click inside the box above and press Ctrl+C to copy the citation."))
+
 
 
 
