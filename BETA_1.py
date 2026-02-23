@@ -29,7 +29,7 @@ else:
     integrate = np.trapz
 
 # --- KONFIGURACE STRÁNKY ---
-st.set_page_config(page_title="Stirling Beta Model", layout="wide")
+st.set_page_config(page_title="Stirling Cycle Model", layout="wide")
 
 # =============================================================================
 # JAZYKOVÝ PŘEPÍNAČ A FUNKCE PŘEKLADU
@@ -193,7 +193,7 @@ def smart_input(label, min_val, slider_max, default_val, step, key_id, help_text
     return st.session_state[f"{key_id}_num"]
 
 # =============================================================================
-# FUNKCE PRO VYKRESLENÍ ANIMOVANÉHO SCHÉMATU MOTORU
+# FUNKCE PRO VYKRESLENÍ ANIMOVANÉHO SCHÉMATU MOTORU (POUZE BETA)
 # =============================================================================
 @st.cache_data(show_spinner=False)
 def generate_engine_animation(alpha_deg):
@@ -369,6 +369,12 @@ def generate_engine_animation(alpha_deg):
 # =============================================================================
 st.sidebar.header(t("🎛️ Nastavení simulace", "🎛️ Simulation Settings"))
 
+mod_type = st.sidebar.radio(
+    t("Modifikace motoru:", "Engine Modification:"),
+    ["Beta", "Alpha"],
+    horizontal=True
+)
+
 with st.sidebar.expander(t("1. Provozní parametry", "1. Operating Parameters"), expanded=True):
     f = smart_input(t(r"Frekvence $f$ (Hz)", r"Frequency $f$ (Hz)"), 1, 200, 50, 1, "freq")
     p_st_MPa = smart_input(t(r"Střední tlak $p_{stř}$ (MPa)", r"Mean pressure $p_{mean}$ (MPa)"), 0.1, 50.0, 15.0, 0.1, "pres")
@@ -378,11 +384,14 @@ with st.sidebar.expander(t("1. Provozní parametry", "1. Operating Parameters"),
     n_poly = smart_input(t(r"Polytropický exponent $n$ (-)", r"Polytropic exponent $n$ (-)"), 1.0, 1.67, 1.4, 0.01, "n_poly")
 
 with st.sidebar.expander(t("2. Geometrie", "2. Geometry"), expanded=False):
-    VTZ_ccm = smart_input(
-        t(r"Zdvihový objem $V_{TZ}$ (cm$^3$)", r"Swept volume $V_{SW}$ (cm$^3$)"), 
-        10.0, 1000.0, 118.58, 0.01, "vol_main",
-        help_text=t("Zdvihový objem přemisťovacího pístu.", "Swept volume of the displacer.")
-    )
+    if mod_type == "Beta":
+        VTZ_label_cz, VTZ_label_en = r"Zdvihový objem $V_{TZ}$ (cm$^3$)", r"Swept volume $V_{SW}$ (cm$^3$)"
+        VTZ_help_cz, VTZ_help_en = "Zdvihový objem přemisťovacího pístu.", "Swept volume of the displacer."
+    else:
+        VTZ_label_cz, VTZ_label_en = r"Zdvihový objem $V_{TZ}$ (cm$^3$)", r"Swept volume $V_{SW}$ (cm$^3$)"
+        VTZ_help_cz, VTZ_help_en = "Zdvihový objem teplého pístu.", "Swept volume of the hot piston."
+        
+    VTZ_ccm = smart_input(t(VTZ_label_cz, VTZ_label_en), 10.0, 1000.0, 118.58, 0.01, "vol_main", help_text=t(VTZ_help_cz, VTZ_help_en))
     VTZ = VTZ_ccm * 1e-6 
     
     st.markdown("---")
@@ -436,12 +445,15 @@ with st.sidebar.expander(t("2. Geometrie", "2. Geometry"), expanded=False):
         XTM = VTM_ccm / VTZ_ccm
         XSM = VSM_ccm / VTZ_ccm
         
-    st.markdown("---")
-    vp_percent = smart_input(
-        t(r"Objem překryvu zdvihů $V_P$ (% ideálu)", r"Overlapping volume $V_P$ (% of ideal)"), 
-        0, 100, 0, 1, "vp_perc",
-        help_text=t("Objem překryvu zdvihů mezi teplým a studeným pístem vyjádřený v procentech ideálního překryvu.", "Overlapping volume between the hot and cold piston expressed as a percentage of the ideal overlap.")
-    )
+    if mod_type == "Beta":
+        st.markdown("---")
+        vp_percent = smart_input(
+            t(r"Objem překryvu zdvihů $V_P$ (% ideálu)", r"Overlapping volume $V_P$ (% of ideal)"), 
+            0, 100, 0, 1, "vp_perc",
+            help_text=t("Objem překryvu zdvihů mezi teplým a studeným pístem vyjádřený v procentech ideálního překryvu.", "Overlapping volume between the hot and cold piston expressed as a percentage of the ideal overlap.")
+        )
+    else:
+        vp_percent = 0.0
 
 with st.sidebar.expander(t("3. Pracovní látka", "3. Working Fluid"), expanded=False):
     plyn = st.radio(t("Zvolte médium", "Select medium"), [t("Helium", "Helium"), t("Vodík", "Hydrogen"), t("Vzduch", "Air")])
@@ -467,6 +479,7 @@ if st.sidebar.button(t("🔄 Restartovat nastavení", "🔄 Reset settings"), ty
 # ŘÍZENÍ STAVU A VÝPOČET
 # =============================================================================
 calc_params = {
+    'mod_type': mod_type,
     'f': f, 'p_st_MPa': p_st_MPa, 'TT': TT, 'TS': TS, 'alpha_deg': alpha_deg,
     'n_poly': n_poly, 'VTZ_ccm': VTZ_ccm, 'XSZ': XSZ, 'XR': XR, 'XTM': XTM,
     'XSM': XSM, 'vp_percent': vp_percent, 'plyn': plyn, 'r': r_val, 'kappa': kappa_val
@@ -488,9 +501,10 @@ if st.session_state.get('show_loader', False) and not params_changed:
     st.session_state.show_loader = False
 
 # =============================================================================
-# FUNKCE VÝPOČTU JÁDRA
+# FUNKCE VÝPOČTU JÁDRA (ÚPRAVA PRO BETA A ALFA)
 # =============================================================================
 def vypocet_modelu(params):
+    m_type = params['mod_type']
     alpha = np.deg2rad(params['alpha_deg'])
     TT = params['TT']
     TS = params['TS']
@@ -509,36 +523,48 @@ def vypocet_modelu(params):
     vp_percent = params['vp_percent']
 
     VSZ = VTZ * XSZ; VTM = VTZ * XTM; VSM = VTZ * XSM; VR  = VTZ * XR
-
-    term_sq = (VTZ**2 + VSZ**2)/4 - (VTZ * VSZ / 2) * np.cos(alpha)
-    if term_sq < 0: term_sq = 0
-    VP_ideal = (VTZ + VSZ)/2 - np.sqrt(term_sq)
-    VP = VP_ideal * (vp_percent / 100.0)
-    XP = VP / VTZ
-
     phi = np.linspace(0, 2*np.pi, 360)
     phi_deg = np.rad2deg(phi)
 
-    VT = (VTZ / 2) * (1 - np.cos(phi)) + VTM
-    term_disp = (VTZ / 2) * (1 + np.cos(phi))
-    term_work = (VSZ / 2) * (1 - np.cos(phi - alpha))
-    VS = term_disp + term_work + VSM - VP
-    V = VR + VT + VS
+    if m_type == "Beta":
+        term_sq = (VTZ**2 + VSZ**2)/4 - (VTZ * VSZ / 2) * np.cos(alpha)
+        if term_sq < 0: term_sq = 0
+        VP_ideal = (VTZ + VSZ)/2 - np.sqrt(term_sq)
+        VP = VP_ideal * (vp_percent / 100.0)
+        XP = VP / VTZ
 
+        VT = (VTZ / 2) * (1 - np.cos(phi)) + VTM
+        term_disp = (VTZ / 2) * (1 + np.cos(phi))
+        term_work = (VSZ / 2) * (1 - np.cos(phi - alpha))
+        VS = term_disp + term_work + VSM - VP
+
+        num_beta = XSZ * np.sin(alpha)
+        den_beta = tau + XSZ * np.cos(alpha) - 1
+        beta_angle = np.arctan2(num_beta, den_beta)
+
+        term_cold = (1/tau) * (1 + XSZ + 2*XSM - 2*XP)
+        term_reg  = (2 * XR * np.log(tau)) / (tau - 1)
+        A = 1 + 2*XTM + term_cold + term_reg
+        B = np.sqrt((1 + (1/tau)*(XSZ * np.cos(alpha) - 1))**2 + ((1/tau) * XSZ * np.sin(alpha))**2)
+
+    else: # Alfa
+        VP = 0
+        XP = 0
+
+        VT = (VTZ / 2) * (1 - np.cos(phi)) + VTM
+        VS = (VSZ / 2) * (1 - np.cos(phi - alpha)) + VSM
+
+        num_beta = XSZ * np.sin(alpha)
+        den_beta = tau + XSZ * np.cos(alpha)
+        beta_angle = np.arctan2(num_beta, den_beta)
+
+        term_reg = (XR * np.log(tau)) / (tau - 1)
+        A = 1 + XSZ/tau + 2*(XTM + XSM/tau + term_reg)
+        B = np.sqrt((1 + (XSZ/tau) * np.cos(alpha))**2 + ((XSZ/tau) * np.sin(alpha))**2)
+
+    V = VR + VT + VS
     dVT_dphi = np.gradient(VT, phi)
     dVS_dphi = np.gradient(VS, phi)
-
-    num_beta = XSZ * np.sin(alpha)
-    den_beta = tau + XSZ * np.cos(alpha) - 1
-    beta_angle = np.arctan2(num_beta, den_beta)
-
-    term_cold = (1/tau) * (1 + XSZ + 2*XSM - 2*XP)
-    
-    # OPRAVA 1: Smazáno n_poly z čitatele term_reg
-    term_reg  = (2 * XR * np.log(tau)) / (tau - 1)
-    
-    A = 1 + 2*XTM + term_cold + term_reg
-    B = np.sqrt((1 + (1/tau)*(XSZ * np.cos(alpha) - 1))**2 + ((1/tau) * XSZ * np.sin(alpha))**2)
 
     P_shape = (A - B * np.cos(phi - beta_angle))**(-n_poly)
     p_real = (p_st_pa / np.mean(P_shape)) * P_shape 
@@ -564,21 +590,18 @@ def vypocet_modelu(params):
     T_mean_integral_T = np.mean(T_gas_T)
     T_mean_integral_S = np.mean(T_gas_S)
 
-    # OPRAVA 2: T_reg nyní osciluje
     T_reg_mean_static = (TT - TS) / np.log(TT/TS)
     T_reg_phi = T_reg_mean_static * (p_real / p_mean_real)**exp_term
 
-    # OPRAVA 3: Dosazení oscilujícího T_reg_phi do hmotnosti
     m_inst = (p_real / r) * ( (VT / T_gas_T) + (VS / T_gas_S) + (VR / T_reg_phi) )
     mass_total_g = np.mean(m_inst) * 1000
     mass_deviation = (np.max(m_inst) - np.min(m_inst)) / np.mean(m_inst) * 100
 
     m_T_g = (p_real * VT / (r * T_gas_T)) * 1000
     m_S_g = (p_real * VS / (r * T_gas_S)) * 1000
-    m_R_g = (p_real * VR / (r * T_reg_phi)) * 1000  # Změněno i pro graf hmotnosti
+    m_R_g = (p_real * VR / (r * T_reg_phi)) * 1000  
     m_total_no_reg = m_T_g + m_S_g
 
-    # OPRAVA 4: 3D graf teplot nyní pracuje s oscilujícím regenerátorem
     x_reg_vals = np.linspace(1.01, 2.99, 40) 
     xi = (x_reg_vals - 1.01) / (2.99 - 1.01)
     shape_reg = 3*xi**2 - 2*xi**3
@@ -590,7 +613,6 @@ def vypocet_modelu(params):
     T_surface = np.zeros_like(x_grid)
     for i in range(len(phi)):
         row_hot = T_gas_T[i] * np.ones_like(x_hot_vals)
-        # Dynamický profil natahující se mezi oscilující T_T a T_S
         row_reg = T_gas_T[i] - (T_gas_T[i] - T_gas_S[i]) * shape_reg
         row_cold = T_gas_S[i] * np.ones_like(x_cold_vals)
         T_surface[:, i] = np.concatenate([row_hot, row_reg, row_cold])
@@ -598,6 +620,7 @@ def vypocet_modelu(params):
     return locals()
 
 def solve_cycle_sweep(params):
+    m_type = params['mod_type']
     alpha = np.deg2rad(params['alpha_deg'])
     TT = params['TT']
     TS = params['TS']
@@ -616,33 +639,46 @@ def solve_cycle_sweep(params):
     vp_percent = params['vp_percent']
 
     VSZ = VTZ * XSZ; VTM = VTZ * XTM; VSM = VTZ * XSM; VR  = VTZ * XR
-
-    term_sq = (VTZ**2 + VSZ**2)/4 - (VTZ * VSZ / 2) * np.cos(alpha)
-    if term_sq < 0: term_sq = 0
-    VP_ideal = (VTZ + VSZ)/2 - np.sqrt(term_sq)
-    VP = VP_ideal * (vp_percent / 100.0)
-    XP = VP / VTZ
-
     phi = np.linspace(0, 2*np.pi, 360)
 
-    VT = (VTZ / 2) * (1 - np.cos(phi)) + VTM
-    term_disp = (VTZ / 2) * (1 + np.cos(phi))
-    term_work = (VSZ / 2) * (1 - np.cos(phi - alpha))
-    VS = term_disp + term_work + VSM - VP
+    if m_type == "Beta":
+        term_sq = (VTZ**2 + VSZ**2)/4 - (VTZ * VSZ / 2) * np.cos(alpha)
+        if term_sq < 0: term_sq = 0
+        VP_ideal = (VTZ + VSZ)/2 - np.sqrt(term_sq)
+        VP = VP_ideal * (vp_percent / 100.0)
+        XP = VP / VTZ
+
+        VT = (VTZ / 2) * (1 - np.cos(phi)) + VTM
+        term_disp = (VTZ / 2) * (1 + np.cos(phi))
+        term_work = (VSZ / 2) * (1 - np.cos(phi - alpha))
+        VS = term_disp + term_work + VSM - VP
+
+        num_beta = XSZ * np.sin(alpha)
+        den_beta = tau + XSZ * np.cos(alpha) - 1
+        beta_angle = np.arctan2(num_beta, den_beta)
+
+        term_cold = (1/tau) * (1 + XSZ + 2*XSM - 2*XP)
+        term_reg  = (2 * XR * np.log(tau)) / (tau - 1)
+        A = 1 + 2*XTM + term_cold + term_reg
+        B = np.sqrt((1 + (1/tau)*(XSZ * np.cos(alpha) - 1))**2 + ((1/tau) * XSZ * np.sin(alpha))**2)
+
+    else: # Alfa
+        VP = 0
+        XP = 0
+
+        VT = (VTZ / 2) * (1 - np.cos(phi)) + VTM
+        VS = (VSZ / 2) * (1 - np.cos(phi - alpha)) + VSM
+
+        num_beta = XSZ * np.sin(alpha)
+        den_beta = tau + XSZ * np.cos(alpha)
+        beta_angle = np.arctan2(num_beta, den_beta)
+
+        term_reg = (XR * np.log(tau)) / (tau - 1)
+        A = 1 + XSZ/tau + 2*(XTM + XSM/tau + term_reg)
+        B = np.sqrt((1 + (XSZ/tau) * np.cos(alpha))**2 + ((XSZ/tau) * np.sin(alpha))**2)
+
     V = VR + VT + VS
-
-    num_beta = XSZ * np.sin(alpha)
-    den_beta = tau + XSZ * np.cos(alpha) - 1
-    beta_angle = np.arctan2(num_beta, den_beta)
-
-    term_cold = (1/tau) * (1 + XSZ + 2*XSM - 2*XP)
     
-    # OPRAVA 1: Smazáno n_poly v term_reg i zde
-    term_reg  = (2 * XR * np.log(tau)) / (tau - 1)
-    
-    A = 1 + 2*XTM + term_cold + term_reg
-    B = np.sqrt((1 + (1/tau)*(XSZ * np.cos(alpha) - 1))**2 + ((1/tau) * XSZ * np.sin(alpha))**2)
-
     P_shape = (A - B * np.cos(phi - beta_angle))**(-n_poly)
     p_real = (p_st_pa / np.mean(P_shape)) * P_shape 
 
@@ -668,7 +704,6 @@ def solve_cycle_sweep(params):
     T_gas_T = TT * (p_real / p_mean_real)**exp_term
     T_gas_S = TS * (p_real / p_mean_real)**exp_term
     
-    # OPRAVA 2+3: T_reg osciluje a je použito pro celkovou hmotnost
     T_reg_mean_static = (TT - TS) / np.log(TT/TS)
     T_reg_phi = T_reg_mean_static * (p_real / p_mean_real)**exp_term
 
@@ -696,7 +731,6 @@ def get_smooth_curve(x, y, x_new):
     spline = make_interp_spline(x, y, k=2) 
     return spline(x_new)
 
-# Funkce pro výpočet Bn s asymptotickou extrapolací (křivka se zplošťuje)
 def get_bn_val(T_act, curve_y, curve_x):
     if T_act > 1200:
         slope = (curve_y[-1] - curve_y[-2]) / (curve_x[-1] - curve_x[-2])
@@ -725,11 +759,14 @@ curve_mid = get_smooth_curve(x_mid, y_mid, T_range_full)
 curve_bot = get_smooth_curve(x_bot, y_bot, T_range_full)
 curve_fsps = get_smooth_curve(x_fsps, y_fsps, T_range_full)
 
-
 # Načtení výsledků na základě POTVRZENÝCH parametrů
 lp = st.session_state.last_params
 res = vypocet_modelu(lp)
-animated_gif = generate_engine_animation(lp['alpha_deg'])
+
+if lp['mod_type'] == "Beta":
+    animated_gif = generate_engine_animation(lp['alpha_deg'])
+else:
+    animated_gif = None
 
 # =============================================================================
 # 4. ZOBRAZENÍ VÝSLEDKŮ 
@@ -750,7 +787,7 @@ with col_left:
     st.markdown(f"""
         <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; margin-bottom: 30px;">
             <h2 style="color: #2c3e50; font-size: 2.4rem; font-weight: 700; margin-bottom: 0px; text-align: center;">
-                {t("Model oběhu Stirlingova motoru", "Stirling Engine Cycle Model")}
+                {t(f"Model oběhu Stirlingova motoru ({lp['mod_type']})", f"Stirling Engine Cycle Model ({lp['mod_type']})")}
             </h2>
             <h4 style="color: #7f8c8d; font-size: 1.1rem; font-weight: 400; margin-top: 5px; text-align: center;">
                 {t("s polytropickými změnami na teplé a studené straně", "with polytropic processes on the hot and cold sides")}
@@ -767,9 +804,13 @@ with col_left:
     c4.metric(t("Tlakový poměr ψ", "Pressure ratio ψ"), f"{res['pressure_ratio']:.2f}")
 
 with col_right:
-    st.image(animated_gif, use_container_width=True)
+    if animated_gif:
+        st.image(animated_gif, use_container_width=True)
+    else:
+        st.info(t("Animace schématu je aktuálně dostupná pouze pro modifikaci Beta.", 
+                  "The schematic animation is currently available only for the Beta modification."))
 
-# Plovoucí tlačítko Přepočítat model integrované dohromady s dodatečným textem
+# Plovoucí tlačítko Přepočítat model
 warn_container = st.container()
 with warn_container:
     if params_changed:
@@ -826,7 +867,7 @@ with tab1:
     with col_c:
         st.markdown(f"""<div class="result-box" style="height: 190px;"><div class="box-title">{t('Tlakové poměry', 'Pressure Ratios')}</div><ul><li>{t('Tlakový poměr', 'Pressure ratio')} ψ: <b>{res['pressure_ratio']:.2f} [-]</b></li><li>Max. {t('tlak', 'pressure')} p<sub>max</sub>: <b>{np.max(res['p_real'])/1e6:.2f} MPa</b></li><li>Min. {t('tlak', 'pressure')} p<sub>min</sub>: <b>{np.min(res['p_real'])/1e6:.2f} MPa</b></li><li>{t('Střední tlak', 'Mean pressure')} p<sub>stř</sub>: <b>{lp['p_st_MPa']:.2f} MPa</b></li></ul></div>""", unsafe_allow_html=True)
     with col_d:
-        st.markdown(f"""<div class="result-box" style="height: 190px;"><div class="box-title">{t('Hmotnost náplně', 'Fluid Mass')}</div><ul><li>{t('Celková hmotnost média', 'Total medium mass')} (m<sub>celk</sub>): <b>{res['mass_total_g']:.4f} g</b></li><li>{t('Relativní odchylka hmotnosti', 'Relative mass deviation')}: <b>{res['mass_deviation']:.5f} %</b></li></ul></div>""", unsafe_allow_html=True)
+        st.markdown(f"""<div class="result-box" style="height: 190px;"><div class="box-title">{t('Hmotnost náplně', 'Fluid Mass')}</div><ul><li>{t('Celková hmotnost média', 'Total medium mass')} (m<sub>celk</sub>): <b>{res['mass_total_g']:.4f} g</b></li></ul></div>""", unsafe_allow_html=True)
 
 with tab2:
     col1a, col1b = st.columns(2)
@@ -867,16 +908,13 @@ with tab2:
 with tab3:
     st.markdown(t("### Teplota média v motoru v průběhu cyklu", "### Gas Temperature Profile during the Cycle"))
     
-    # OPRAVA 5: Přidání 3 referenčních čar do 3D grafu (T_T, T_R, T_S) přesně podle MATLABu
     fig_3d = go.Figure(data=[go.Surface(z=res['T_surface'], x=res['x_grid'], y=res['phi_grid'], colorscale='Jet', colorbar=dict(title='T (K)'))])
     
-    # Čára T_T (Teplá strana - fixovaná na x=0.5)
     fig_3d.add_trace(go.Scatter3d(
         x=[0.5] * len(res['phi_deg']), y=res['phi_deg'], z=res['T_gas_T'],
         mode='lines', line=dict(color='red', width=6), name='T_T(φ)'
     ))
     
-    # Čára T_R (Střed regenerátoru - dynamický výpočet pozice X)
     T_reg_profile_static = lp['TT'] - (lp['TT'] - lp['TS']) * res['shape_reg']
     x_TR_intersect = np.interp(res['T_reg_mean_static'], T_reg_profile_static[::-1], res['x_reg_vals'][::-1])
     fig_3d.add_trace(go.Scatter3d(
@@ -884,7 +922,6 @@ with tab3:
         mode='lines', line=dict(color='magenta', width=6), name='T_R(φ)'
     ))
     
-    # Čára T_S (Studená strana - fixovaná na x=3.5)
     fig_3d.add_trace(go.Scatter3d(
         x=[3.5] * len(res['phi_deg']), y=res['phi_deg'], z=res['T_gas_S'],
         mode='lines', line=dict(color='blue', width=6), name='T_S(φ)'
@@ -895,7 +932,6 @@ with tab3:
     
     st.markdown("---")
     
-    # OPRAVA 6: Uložení oscilujícího T_R do 2D grafu teplot
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=res['phi_deg'], y=res['T_gas_T'], mode='lines', line=dict(color='red', width=3), name='T<sub>Ts</sub>(φ)'))
     fig.add_trace(go.Scatter(x=res['phi_deg'], y=res['T_gas_S'], mode='lines', line=dict(color='blue', width=3), name='T<sub>Ss</sub>(φ)'))
@@ -915,7 +951,6 @@ with tab3:
     fig.update_xaxes(tickmode='linear', tick0=0, dtick=45)
     st.plotly_chart(fig, use_container_width=True)
     
-    # OPRAVA 7: Teplotní poměry s oscilujícím T_reg_phi
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=res['phi_deg'], y=res['T_gas_S']/res['T_gas_T'], mode='lines', line=dict(color='blue', width=2), name='T<sub>Ss</sub> / T<sub>Ts</sub>'))
     fig.add_trace(go.Scatter(x=res['phi_deg'], y=res['T_reg_phi']/res['T_gas_T'], mode='lines', line=dict(color='magenta', width=2), name='T<sub>R</sub>(φ) / T<sub>Ts</sub>'))
@@ -954,7 +989,6 @@ with tab5:
     fig.add_trace(go.Scatter(x=res['phi_deg'], y=res['m_S_g'], mode='lines', line=dict(color='blue', width=2), name='m<sub>S</sub>'))
     fig.add_trace(go.Scatter(x=res['phi_deg'], y=res['m_R_g'], mode='lines', line=dict(color='magenta', width=2, dash='dash'), name='m<sub>R</sub>'))
     
-    # OPRAVA 8: Sloučení do jednoho grafu jako v MATLABu
     fig.add_trace(go.Scatter(x=res['phi_deg'], y=res['m_inst']*1000, mode='lines', line=dict(color='black', width=3), name='m<sub>celk</sub>'))
     
     fig.update_layout(title=dict(text=t("Bilance hmotnosti pracovní látky během cyklu", "Mass balance of the working fluid during the cycle"), x=0.5, xanchor='center', yanchor='top'), xaxis_title="φ (°)", yaxis_title=t("Hmotnost (g)", "Mass (g)"), height=500, **layout_style)
@@ -1043,6 +1077,10 @@ with tab6:
             "Polytropic exponent n (-)"
         ]
         opts = param_options_cz if is_cz else param_options_en
+        
+        # Pro Alfu nedává překryv V_P smysl, ale necháváme ho v seznamu pro stabilitu.
+        # Pokud uživatel sweepne V_P při Alfe, vykreslí se rovná čára.
+        
         param_type = st.selectbox(t("Měněný parametr (osa X):", "Parameter to sweep (X-axis):"), opts, key='param_x_sel')
         idx_p = opts.index(param_type)
 
@@ -1235,7 +1273,6 @@ with tab7:
           "Unlike ideal indicated power ($P_{ind}$), this calculation inherently accounts for real aerodynamic and mechanical losses depending on the engine type.")
     )
     
-    # Funkce pro výpočet Bn s asymptotickou extrapolací (křivka se zplošťuje)
     def get_bn_val(T_act, curve_y, curve_x):
         if T_act > 1200:
             slope = (curve_y[-1] - curve_y[-2]) / (curve_x[-1] - curve_x[-2])
@@ -1288,7 +1325,6 @@ with tab7:
     rec_title = "✅ Doporučená volba: " if is_cz else "✅ Recommended choice: "
     rec_sub = "(doporučeno na základě zvoleného mrtvého objemu)" if is_cz else "(recommended based on selected dead volume)"
 
-    # U angličtiny odstraníme případné \n z textu při výpisu v radio buttonu, aby to nahoře nebylo rozházené
     clean_best_option = base_options[best_idx].replace('\n', ' ')
 
     st.markdown(f"""
@@ -1298,19 +1334,16 @@ with tab7:
     </div>
     """, unsafe_allow_html=True)
 
-    # Vytvoření dynamických textů pro přepínač (tučné písmo a ikona pro vítěze)
     display_options = [opt.replace('\n', ' ') for opt in base_options]
     display_options[best_idx] = f"✅ **{clean_best_option}** (← {rec_sub.strip('()')})"
 
     if 'selected_curve_idx' not in st.session_state:
         st.session_state.selected_curve_idx = best_idx
 
-    # Vynucení doporučení při přepočtu modelu (spolehlivě přepne index v session_state)
     if st.session_state.get('force_auto_curve', False):
         st.session_state.selected_curve_idx = best_idx
         st.session_state.force_auto_curve = False
 
-    # Natvrdo propíšeme hodnotu do session state před inicializací radio buttonu (bezpečné vůči změně jazyka)
     st.session_state['curve_choice_radio'] = display_options[st.session_state.selected_curve_idx]
 
     def update_curve_idx():
@@ -1322,7 +1355,6 @@ with tab7:
 
     st.markdown("<br>", unsafe_allow_html=True)
     
-    # Renderování radio buttonu
     curve_choice = st.radio(t("Vyberte referenční kategorii vašeho motoru pro odečet Bn:", "Select the reference category of your engine to derive Bn:"), 
                             display_options, 
                             key="curve_choice_radio",
@@ -1441,21 +1473,17 @@ with col_f1:
     )
     st.markdown(f"🔗 [GitHub Repository](https://github.com/vovota2/Stirling-model)")
 # --- ZOBRAZENÍ POČÍTADLA VIEWS (AŽ PO INTERAKCI UŽIVATELE) ---
-    # Odznáček se začne řešit a zobrazovat až ve chvíli, kdy pocet_nacteni > 1 (reálný člověk)
     if st.session_state.get('pocet_nacteni', 0) > 1:
         if 'badge_b64' not in st.session_state:
             try:
-                # Při prvním kliknutí uživatele se odznáček stáhne a započítá +1
                 url = "https://visitor-badge.laobi.icu/badge?page_id=vovota2.stirling-engine-model&left_text=Views"
                 req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
                 with urllib.request.urlopen(req) as response:
                     svg_data = response.read()
-                    # Uložíme si ho natrvalo do paměti této relace
                     st.session_state.badge_b64 = base64.b64encode(svg_data).decode('utf-8')
             except Exception:
                 st.session_state.badge_b64 = ""
 
-        # Vykreslíme uložený odznáček z paměti (už žádné další načítání z internetu)
         if st.session_state.badge_b64:
             st.markdown(
                 f"""
@@ -1466,8 +1494,8 @@ with col_f1:
                 unsafe_allow_html=True
             )
     else:
-        # Dokud uživatel na nic neklikl, vložíme jen prázdné místo, aby se nezbortil design patičky
         st.markdown("<div style='height: 28px;'></div>", unsafe_allow_html=True)
+
 with col_f2:
     st.markdown(f"### 📚 {t('Teoretický model', 'Theoretical Background')}")
     st.markdown(
@@ -1483,9 +1511,8 @@ with col_f3:
     st.markdown(f"### 📖 {t('Jak citovat', 'How to cite')}")
     
     today = time.strftime("%Y-%m-%d")
-    citation_cz = f"VOTAVA, Vojtěch. Stirling Engine Beta Model [online]. 2026 [cit. {today}]. Dostupné z: https://stirling-engine-model.streamlit.app/"
-    citation_en = f"VOTAVA, Vojtěch. Stirling Engine Beta Model [online]. 2026 [cited {today}]. Available from: https://stirling-engine-model.streamlit.app/"
+    citation_cz = f"VOTAVA, Vojtěch. Stirling Engine Cycle Model [online]. 2026 [cit. {today}]. Dostupné z: https://stirling-engine-model.streamlit.app/"
+    citation_en = f"VOTAVA, Vojtěch. Stirling Engine Cycle Model [online]. 2026 [cited {today}]. Available from: https://stirling-engine-model.streamlit.app/"
     
     st.code(t(citation_cz, citation_en), language="text")
     st.caption(t("Kliknutím do pole výše a Ctrl+C citaci zkopírujete.", "Click inside the box above and press Ctrl+C to copy the citation."))
-
