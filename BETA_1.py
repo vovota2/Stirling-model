@@ -20,6 +20,7 @@ import gspread
 import pytz
 from datetime import datetime
 import urllib.request
+import base64
 
 # --- FIX PRO NUMPY VERZE ---
 if hasattr(np, 'trapezoid'):
@@ -53,10 +54,10 @@ def zapis_do_tabulky(jazyk, typ_akce):
         sheet.append_row([current_time, jazyk, typ_akce])
     except Exception:
         pass # Ignorujeme chyby, aby nespadla aplikace
+
 # =============================================================================
 # LOGOVÁNÍ SKUTEČNÉ AKTIVITY (JEDEN ZÁPIS NA RELACI)
 # =============================================================================
-# 1. Příprava proměnných při prvním načtení
 if 'pocet_nacteni' not in st.session_state:
     st.session_state.pocet_nacteni = 0
 if 'uz_zapsano' not in st.session_state:
@@ -64,23 +65,17 @@ if 'uz_zapsano' not in st.session_state:
 if 'puvodni_jazyk' not in st.session_state:
     st.session_state.puvodni_jazyk = lang_choice
 
-# 2. Přičteme průchod (Bot zůstane navždy na čísle 1, protože na nic neklikne)
 st.session_state.pocet_nacteni += 1
 
-# 3. Zápis do tabulky: Provádí se JEN KDYŽ uživatel něco udělá (>1) a JEN JEDNOU
 if st.session_state.pocet_nacteni > 1 and not st.session_state.uz_zapsano:
-    
-    # Zjistíme, jestli první věc, kterou udělal, byla zrovna změna jazyka
     if st.session_state.puvodni_jazyk != lang_choice:
         typ_akce = "Změna jazyka"
     else:
-        typ_akce = "Aktivita v aplikaci" # Např. pohnul posuvníkem
+        typ_akce = "Aktivita v aplikaci"
         
     zapis_do_tabulky(lang_choice, typ_akce)
-    
-    # Zamkneme zápis pro tohoto uživatele, ať tam neudělá 100 řádků
     st.session_state.uz_zapsano = True
-# =============================================================================
+
 # =============================================================================
 # CSS ÚPRAVY (dynamický text na tlačítku podle jazyka)
 # =============================================================================
@@ -150,7 +145,7 @@ st.markdown(f"""
     }}
     div.element-container:has(.recalc-anchor) + div.element-container button {{
         width: 100% !important;
-        height: 60px !important; /* Větší výška pro oba řádky */
+        height: 60px !important;
         border-radius: 15px !important;
         box-shadow: 0 10px 25px rgba(0,0,0,0.3) !important;
         display: flex;
@@ -538,7 +533,10 @@ def vypocet_modelu(params):
     beta_angle = np.arctan2(num_beta, den_beta)
 
     term_cold = (1/tau) * (1 + XSZ + 2*XSM - 2*XP)
-    term_reg  = (2 * XR * n_poly * np.log(tau)) / (tau - 1)
+    
+    # OPRAVA 1: Smazáno n_poly z čitatele term_reg
+    term_reg  = (2 * XR * np.log(tau)) / (tau - 1)
+    
     A = 1 + 2*XTM + term_cold + term_reg
     B = np.sqrt((1 + (1/tau)*(XSZ * np.cos(alpha) - 1))**2 + ((1/tau) * XSZ * np.sin(alpha))**2)
 
@@ -563,21 +561,28 @@ def vypocet_modelu(params):
     exp_term = (n_poly - 1) / n_poly
     T_gas_T = TT * (p_real / p_mean_real)**exp_term
     T_gas_S = TS * (p_real / p_mean_real)**exp_term
-    T_reg_mean = (TT - TS) / np.log(TT/TS)
+    T_mean_integral_T = np.mean(T_gas_T)
+    T_mean_integral_S = np.mean(T_gas_S)
 
-    m_inst = (p_real / r) * ( (VT / T_gas_T) + (VS / T_gas_S) + (VR / T_reg_mean) )
+    # OPRAVA 2: T_reg nyní osciluje
+    T_reg_mean_static = (TT - TS) / np.log(TT/TS)
+    T_reg_phi = T_reg_mean_static * (p_real / p_mean_real)**exp_term
+
+    # OPRAVA 3: Dosazení oscilujícího T_reg_phi do hmotnosti
+    m_inst = (p_real / r) * ( (VT / T_gas_T) + (VS / T_gas_S) + (VR / T_reg_phi) )
     mass_total_g = np.mean(m_inst) * 1000
     mass_deviation = (np.max(m_inst) - np.min(m_inst)) / np.mean(m_inst) * 100
 
     m_T_g = (p_real * VT / (r * T_gas_T)) * 1000
     m_S_g = (p_real * VS / (r * T_gas_S)) * 1000
-    m_R_g = (p_real * VR / (r * T_reg_mean)) * 1000
+    m_R_g = (p_real * VR / (r * T_reg_phi)) * 1000  # Změněno i pro graf hmotnosti
     m_total_no_reg = m_T_g + m_S_g
 
+    # OPRAVA 4: 3D graf teplot nyní pracuje s oscilujícím regenerátorem
     x_reg_vals = np.linspace(1.01, 2.99, 40) 
     xi = (x_reg_vals - 1.01) / (2.99 - 1.01)
     shape_reg = 3*xi**2 - 2*xi**3
-    T_reg_profile = TT - (TT - TS) * shape_reg
+    
     x_hot_vals = np.linspace(0, 0.99, 10)
     x_cold_vals = np.linspace(3.01, 4, 10)
     x_total = np.concatenate([x_hot_vals, x_reg_vals, x_cold_vals])
@@ -585,7 +590,8 @@ def vypocet_modelu(params):
     T_surface = np.zeros_like(x_grid)
     for i in range(len(phi)):
         row_hot = T_gas_T[i] * np.ones_like(x_hot_vals)
-        row_reg = T_reg_profile
+        # Dynamický profil natahující se mezi oscilující T_T a T_S
+        row_reg = T_gas_T[i] - (T_gas_T[i] - T_gas_S[i]) * shape_reg
         row_cold = T_gas_S[i] * np.ones_like(x_cold_vals)
         T_surface[:, i] = np.concatenate([row_hot, row_reg, row_cold])
 
@@ -630,7 +636,10 @@ def solve_cycle_sweep(params):
     beta_angle = np.arctan2(num_beta, den_beta)
 
     term_cold = (1/tau) * (1 + XSZ + 2*XSM - 2*XP)
-    term_reg  = (2 * XR * n_poly * np.log(tau)) / (tau - 1)
+    
+    # OPRAVA 1: Smazáno n_poly v term_reg i zde
+    term_reg  = (2 * XR * np.log(tau)) / (tau - 1)
+    
     A = 1 + 2*XTM + term_cold + term_reg
     B = np.sqrt((1 + (1/tau)*(XSZ * np.cos(alpha) - 1))**2 + ((1/tau) * XSZ * np.sin(alpha))**2)
 
@@ -658,9 +667,12 @@ def solve_cycle_sweep(params):
     exp_term = (n_poly - 1) / n_poly
     T_gas_T = TT * (p_real / p_mean_real)**exp_term
     T_gas_S = TS * (p_real / p_mean_real)**exp_term
-    T_reg_mean = (TT - TS) / np.log(TT/TS)
+    
+    # OPRAVA 2+3: T_reg osciluje a je použito pro celkovou hmotnost
+    T_reg_mean_static = (TT - TS) / np.log(TT/TS)
+    T_reg_phi = T_reg_mean_static * (p_real / p_mean_real)**exp_term
 
-    m_inst = (p_real / r) * ( (VT / T_gas_T) + (VS / T_gas_S) + (VR / T_reg_mean) )
+    m_inst = (p_real / r) * ( (VT / T_gas_T) + (VS / T_gas_S) + (VR / T_reg_phi) )
     mass_total_g = np.mean(m_inst) * 1000
 
     return {
@@ -814,7 +826,7 @@ with tab1:
     with col_c:
         st.markdown(f"""<div class="result-box" style="height: 190px;"><div class="box-title">{t('Tlakové poměry', 'Pressure Ratios')}</div><ul><li>{t('Tlakový poměr', 'Pressure ratio')} ψ: <b>{res['pressure_ratio']:.2f} [-]</b></li><li>Max. {t('tlak', 'pressure')} p<sub>max</sub>: <b>{np.max(res['p_real'])/1e6:.2f} MPa</b></li><li>Min. {t('tlak', 'pressure')} p<sub>min</sub>: <b>{np.min(res['p_real'])/1e6:.2f} MPa</b></li><li>{t('Střední tlak', 'Mean pressure')} p<sub>stř</sub>: <b>{lp['p_st_MPa']:.2f} MPa</b></li></ul></div>""", unsafe_allow_html=True)
     with col_d:
-        st.markdown(f"""<div class="result-box" style="height: 190px;"><div class="box-title">{t('Hmotnost náplně', 'Fluid Mass')}</div><ul><li>{t('Celková hmotnost média', 'Total medium mass')} (m<sub>celk</sub>): <b>{res['mass_total_g']:.4f} g</b></li><li>{t('Relativní odchylka hmotnosti', 'Relative mass deviation')}: <b>{res['mass_deviation']:.3f} %</b></li></ul></div>""", unsafe_allow_html=True)
+        st.markdown(f"""<div class="result-box" style="height: 190px;"><div class="box-title">{t('Hmotnost náplně', 'Fluid Mass')}</div><ul><li>{t('Celková hmotnost média', 'Total medium mass')} (m<sub>celk</sub>): <b>{res['mass_total_g']:.4f} g</b></li><li>{t('Relativní odchylka hmotnosti', 'Relative mass deviation')}: <b>{res['mass_deviation']:.5f} %</b></li></ul></div>""", unsafe_allow_html=True)
 
 with tab2:
     col1a, col1b = st.columns(2)
@@ -854,36 +866,64 @@ with tab2:
 
 with tab3:
     st.markdown(t("### Teplota média v motoru v průběhu cyklu", "### Gas Temperature Profile during the Cycle"))
-    x_TR_intersect = np.interp(res['T_reg_mean'], res['T_reg_profile'][::-1], res['x_reg_vals'][::-1])
+    
+    # OPRAVA 5: Přidání 3 referenčních čar do 3D grafu (T_T, T_R, T_S) přesně podle MATLABu
     fig_3d = go.Figure(data=[go.Surface(z=res['T_surface'], x=res['x_grid'], y=res['phi_grid'], colorscale='Jet', colorbar=dict(title='T (K)'))])
-    fig_3d.add_trace(go.Scatter3d(x=[x_TR_intersect]*2, y=[0, 360], z=[res['T_reg_mean']]*2, mode='lines', line=dict(color='magenta', width=8), name='T_R'))
+    
+    # Čára T_T (Teplá strana - fixovaná na x=0.5)
+    fig_3d.add_trace(go.Scatter3d(
+        x=[0.5] * len(res['phi_deg']), y=res['phi_deg'], z=res['T_gas_T'],
+        mode='lines', line=dict(color='red', width=6), name='T_T(φ)'
+    ))
+    
+    # Čára T_R (Střed regenerátoru - dynamický výpočet pozice X)
+    T_reg_profile_static = lp['TT'] - (lp['TT'] - lp['TS']) * res['shape_reg']
+    x_TR_intersect = np.interp(res['T_reg_mean_static'], T_reg_profile_static[::-1], res['x_reg_vals'][::-1])
+    fig_3d.add_trace(go.Scatter3d(
+        x=[x_TR_intersect] * len(res['phi_deg']), y=res['phi_deg'], z=res['T_reg_phi'],
+        mode='lines', line=dict(color='magenta', width=6), name='T_R(φ)'
+    ))
+    
+    # Čára T_S (Studená strana - fixovaná na x=3.5)
+    fig_3d.add_trace(go.Scatter3d(
+        x=[3.5] * len(res['phi_deg']), y=res['phi_deg'], z=res['T_gas_S'],
+        mode='lines', line=dict(color='blue', width=6), name='T_S(φ)'
+    ))
+
     fig_3d.update_layout(scene=dict(xaxis_title='x (-)', yaxis_title='φ (°)', zaxis_title='T (K)'), margin=dict(l=0, r=0, b=0, t=10), height=700)
     st.plotly_chart(fig_3d, use_container_width=True)
     
     st.markdown("---")
     
+    # OPRAVA 6: Uložení oscilujícího T_R do 2D grafu teplot
     fig = go.Figure()
-    fig.add_trace(go.Scatter(x=res['phi_deg'], y=res['T_gas_T'], mode='lines', line=dict(color='red', width=3), name='T<sub>Ts</sub>'))
-    fig.add_trace(go.Scatter(x=res['phi_deg'], y=res['T_gas_S'], mode='lines', line=dict(color='blue', width=3), name='T<sub>Ss</sub>'))
+    fig.add_trace(go.Scatter(x=res['phi_deg'], y=res['T_gas_T'], mode='lines', line=dict(color='red', width=3), name='T<sub>Ts</sub>(φ)'))
+    fig.add_trace(go.Scatter(x=res['phi_deg'], y=res['T_gas_S'], mode='lines', line=dict(color='blue', width=3), name='T<sub>Ss</sub>(φ)'))
+    fig.add_trace(go.Scatter(x=res['phi_deg'], y=res['T_reg_phi'], mode='lines', line=dict(color='magenta', width=3), name='T<sub>R</sub>(φ)'))
+    
     max_idx_T = np.argmax(res['T_gas_T']); min_idx_T = np.argmin(res['T_gas_T'])
     max_idx_S = np.argmax(res['T_gas_S']); min_idx_S = np.argmin(res['T_gas_S'])
     fig.add_trace(go.Scatter(x=[res['phi_deg'][max_idx_T]], y=[res['T_gas_T'][max_idx_T]], mode='markers', marker=dict(color='red', size=8), showlegend=False))
     fig.add_trace(go.Scatter(x=[res['phi_deg'][min_idx_T]], y=[res['T_gas_T'][min_idx_T]], mode='markers', marker=dict(color='red', size=8), showlegend=False))
     fig.add_trace(go.Scatter(x=[res['phi_deg'][max_idx_S]], y=[res['T_gas_S'][max_idx_S]], mode='markers', marker=dict(color='blue', size=8), showlegend=False))
     fig.add_trace(go.Scatter(x=[res['phi_deg'][min_idx_S]], y=[res['T_gas_S'][min_idx_S]], mode='markers', marker=dict(color='blue', size=8), showlegend=False))
+    
     fig.add_hline(y=lp['TT'], line_dash="dash", line_color="red", annotation_text="T<sub>T</sub>")
     fig.add_hline(y=lp['TS'], line_dash="dash", line_color="blue", annotation_text="T<sub>S</sub>")
-    fig.add_hline(y=res['T_reg_mean'], line_dash="dot", line_color="magenta", annotation_text="T<sub>R</sub>")
-    fig.update_layout(title=dict(text=t("Průběh teplot v závislosti na φ", "Temperatures vs. Crank angle φ"), x=0.5, xanchor='center', yanchor='top'), xaxis_title="φ (°)", yaxis_title="T (K)", height=500, **layout_style)
+    
+    fig.update_layout(title=dict(text=t("Průměrné teploty média v jednotlivých prostorech", "Temperatures vs. Crank angle φ"), x=0.5, xanchor='center', yanchor='top'), xaxis_title="φ (°)", yaxis_title="T (K)", height=500, **layout_style)
     fig.update_xaxes(tickmode='linear', tick0=0, dtick=45)
     st.plotly_chart(fig, use_container_width=True)
     
+    # OPRAVA 7: Teplotní poměry s oscilujícím T_reg_phi
     fig = go.Figure()
-    fig.add_trace(go.Scatter(x=res['phi_deg'], y=res['T_gas_S']/res['T_gas_T'], mode='lines', line=dict(color='blue'), name='T<sub>Ss</sub> / T<sub>Ts</sub>'))
-    fig.add_trace(go.Scatter(x=res['phi_deg'], y=res['T_reg_mean']/res['T_gas_T'], mode='lines', line=dict(color='magenta'), name='T<sub>R</sub> / T<sub>Ts</sub>'))
-    fig.add_hline(y=np.mean(res['T_gas_S']/res['T_gas_T']), line_dash="dash", line_color="blue")
-    fig.add_hline(y=np.mean(res['T_reg_mean']/res['T_gas_T']), line_dash="dash", line_color="magenta")
-    fig.update_layout(title=dict(text=t("Průběh teplotních poměrů", "Temperature Ratios vs. Crank angle φ"), x=0.5, xanchor='center', yanchor='top'), xaxis_title="φ (°)", yaxis_title=t("Poměr (-)", "Ratio (-)"), height=400, **layout_style)
+    fig.add_trace(go.Scatter(x=res['phi_deg'], y=res['T_gas_S']/res['T_gas_T'], mode='lines', line=dict(color='blue', width=2), name='T<sub>Ss</sub> / T<sub>Ts</sub>'))
+    fig.add_trace(go.Scatter(x=res['phi_deg'], y=res['T_reg_phi']/res['T_gas_T'], mode='lines', line=dict(color='magenta', width=2), name='T<sub>R</sub>(φ) / T<sub>Ts</sub>'))
+    
+    fig.add_hline(y=np.mean(res['T_gas_S']/res['T_gas_T']), line_dash="dash", line_color="blue", annotation_text="Průměr")
+    fig.add_hline(y=np.mean(res['T_reg_phi']/res['T_gas_T']), line_dash="dash", line_color="magenta", annotation_text="Průměr")
+    
+    fig.update_layout(title=dict(text=t("Průběh teplotních poměrů během cyklu", "Temperature Ratios vs. Crank angle φ"), x=0.5, xanchor='center', yanchor='top'), xaxis_title="φ (°)", yaxis_title=t("Poměr (-)", "Ratio (-)"), height=400, **layout_style)
     fig.update_xaxes(tickmode='linear', tick0=0, dtick=45)
     st.plotly_chart(fig, use_container_width=True)
 
@@ -913,18 +953,15 @@ with tab5:
     fig.add_trace(go.Scatter(x=res['phi_deg'], y=res['m_T_g'], mode='lines', line=dict(color='red', width=2), name='m<sub>T</sub>'))
     fig.add_trace(go.Scatter(x=res['phi_deg'], y=res['m_S_g'], mode='lines', line=dict(color='blue', width=2), name='m<sub>S</sub>'))
     fig.add_trace(go.Scatter(x=res['phi_deg'], y=res['m_R_g'], mode='lines', line=dict(color='magenta', width=2, dash='dash'), name='m<sub>R</sub>'))
-    fig.update_layout(title=dict(text=t("Hmotnost média v jednotlivých prostorech v průběhu cyklu", "Mass of the medium in individual spaces during the cycle"), x=0.5, xanchor='center', yanchor='top'), xaxis_title="φ (°)", yaxis_title=t("Hmotnost (g)", "Mass (g)"), height=500, **layout_style)
+    
+    # OPRAVA 8: Sloučení do jednoho grafu jako v MATLABu
+    fig.add_trace(go.Scatter(x=res['phi_deg'], y=res['m_inst']*1000, mode='lines', line=dict(color='black', width=3), name='m<sub>celk</sub>'))
+    
+    fig.update_layout(title=dict(text=t("Bilance hmotnosti pracovní látky během cyklu", "Mass balance of the working fluid during the cycle"), x=0.5, xanchor='center', yanchor='top'), xaxis_title="φ (°)", yaxis_title=t("Hmotnost (g)", "Mass (g)"), height=500, **layout_style)
     fig.update_xaxes(tickmode='linear', tick0=0, dtick=45)
     st.plotly_chart(fig, use_container_width=True)
     
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(x=res['phi_deg'], y=res['m_inst']*1000, mode='lines', line=dict(color='black', width=2), name='m<sub>celk</sub>'))
-    fig.add_hline(y=res['mass_total_g'], line_dash="dash", line_color="red", annotation_text=t("Průměr", "Mean"))
-    y_mid = res['mass_total_g']
-    fig.update_layout(title=dict(text=t(f"Celková hmotnost média m<sub>celk</sub>", f"Total mass of the medium m<sub>total</sub>"), x=0.5, xanchor='center', yanchor='top'), xaxis_title="φ (°)", yaxis_title=t("m<sub>celk</sub> (g)", "m<sub>total</sub> (g)"), height=400, **layout_style)
-    fig.update_yaxes(range=[y_mid*0.999, y_mid*1.001])
-    fig.update_xaxes(tickmode='linear', tick0=0, dtick=45)
-    st.plotly_chart(fig, use_container_width=True)
+    st.info(t(f"Díky použití stejného polytropického exponentu ve všech částech motoru klesla teoretická odchylka hmotnosti v modelu na zanedbatelnou úroveň **{res['mass_deviation']:.5f} %**, čímž je zaručena dokonalá analytická konzistence.", f"Thanks to the use of the same polytropic exponent in all parts of the engine, the theoretical mass deviation in the model has dropped to a negligible level of **{res['mass_deviation']:.5f} %**, ensuring perfect analytical consistency."))
 
 def add_extrema(fig, x, y, color, secondary_y=None, y_fmt=".2f", x_fmt=".2f", ay_max=-35, ay_min=35):
     x = np.array(x)
@@ -1407,8 +1444,6 @@ with col_f1:
     # Odznáček se začne řešit a zobrazovat až ve chvíli, kdy pocet_nacteni > 1 (reálný člověk)
     if st.session_state.get('pocet_nacteni', 0) > 1:
         if 'badge_b64' not in st.session_state:
-            import urllib.request
-            import base64
             try:
                 # Při prvním kliknutí uživatele se odznáček stáhne a započítá +1
                 url = "https://visitor-badge.laobi.icu/badge?page_id=vovota2.stirling-engine-model&left_text=Views"
@@ -1453,9 +1488,3 @@ with col_f3:
     
     st.code(t(citation_cz, citation_en), language="text")
     st.caption(t("Kliknutím do pole výše a Ctrl+C citaci zkopírujete.", "Click inside the box above and press Ctrl+C to copy the citation."))
-
-
-
-
-
-
