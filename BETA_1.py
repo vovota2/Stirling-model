@@ -961,7 +961,7 @@ with tab5:
     fig.update_xaxes(tickmode='linear', tick0=0, dtick=45)
     st.plotly_chart(fig, use_container_width=True)
     
-    st.info(t(f"Díky použití stejného polytropického exponentu ve všech částech motoru klesla teoretická odchylka hmotnosti v modelu na zanedbatelnou úroveň **{res['mass_deviation']:.5f} %**, čímž je zaručena dokonalá analytická konzistence.", f"Thanks to the use of the same polytropic exponent in all parts of the engine, the theoretical mass deviation in the model has dropped to a negligible level of **{res['mass_deviation']:.5f} %**, ensuring perfect analytical consistency."))
+    st.info(t("Díky použití stejného polytropického exponentu ve všech částech motoru zůstává celková hmotnost pracovní látky v průběhu celého cyklu naprosto konstantní, čímž je zaručena dokonalá analytická konzistence modelu.", "Thanks to the use of the same polytropic exponent in all parts of the engine, the total mass of the working fluid remains perfectly constant throughout the entire cycle, ensuring perfect analytical consistency of the model."))
 
 def add_extrema(fig, x, y, color, secondary_y=None, y_fmt=".2f", x_fmt=".2f", ay_max=-35, ay_min=35):
     x = np.array(x)
@@ -1488,3 +1488,4 @@ with col_f3:
     
     st.code(t(citation_cz, citation_en), language="text")
     st.caption(t("Kliknutím do pole výše a Ctrl+C citaci zkopírujete.", "Click inside the box above and press Ctrl+C to copy the citation."))
+
