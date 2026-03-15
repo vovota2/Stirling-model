@@ -1,5 +1,5 @@
 import matplotlib
-matplotlib.use('Agg') # Oprava stability renderování na webových serverech
+matplotlib.use('Agg') # Oprava stability renderování na webových serverech.
 
 import streamlit as st
 import numpy as np
