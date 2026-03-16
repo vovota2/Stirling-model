@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import matplotlib.animation as animation
 import matplotlib.ticker as ticker
+import matplotlib.transforms as mtransforms
 from scipy.interpolate import make_interp_spline
 import tempfile
 import os
@@ -193,7 +194,7 @@ def smart_input(label, min_val, slider_max, default_val, step, key_id, help_text
     return st.session_state[f"{key_id}_num"]
 
 # =============================================================================
-# FUNKCE PRO VYKRESLENÍ ANIMOVANÉHO SCHÉMATU MOTORU (POUZE BETA)
+# FUNKCE PRO VYKRESLENÍ ANIMOVANÉHO SCHÉMATU MOTORU (BETA)
 # =============================================================================
 @st.cache_data(show_spinner=False)
 def generate_engine_animation(alpha_deg):
@@ -356,6 +357,160 @@ def generate_engine_animation(alpha_deg):
         tmp_path = tmpfile.name
 
     ani.save(tmp_path, writer='pillow', fps=50) 
+    plt.close(fig)
+
+    with open(tmp_path, "rb") as f:
+        gif_bytes = f.read()
+
+    os.remove(tmp_path)
+    return gif_bytes
+
+# =============================================================================
+# FUNKCE PRO VYKRESLENÍ ANIMOVANÉHO SCHÉMATU MOTORU (ALFA)
+# =============================================================================
+@st.cache_data(show_spinner=False)
+def generate_alpha_engine_animation(alpha_deg):
+    fig, ax = plt.subplots(figsize=(3.5, 4.0))
+
+    c_line = 'black'
+    c_pist = '#4a4a4a'
+    c_hot = '#ff4d4d'
+    c_cold = '#0033cc'
+    c_reg = '#b39ddb'
+    c_pipe_h = '#ffb3b3'
+    c_pipe_c = '#b3b3ff'
+
+    lw = 1.5
+    scale = 0.85
+
+    xc = 95 * scale
+    yc = 45 * scale
+    R = 15 * scale
+    L = 45 * scale
+    cyl_w = 34 * scale
+    d_base = 25 * scale
+    d_top = 110 * scale
+    pipe_w = 12 * scale
+    pist_h = 28 * scale
+
+    trans_H = mtransforms.Affine2D().rotate_deg(45).translate(xc, yc) + ax.transData
+    trans_C = mtransforms.Affine2D().rotate_deg(-45).translate(xc, yc) + ax.transData
+
+    def draw_cyl(trans, is_hot):
+        ax.plot([-cyl_w/2, -cyl_w/2], [d_base, d_top], color=c_line, lw=lw, transform=trans, zorder=3)
+        ax.plot([cyl_w/2, cyl_w/2], [d_base, d_top], color=c_line, lw=lw, transform=trans, zorder=3)
+        ax.plot([-cyl_w/2, -pipe_w/2], [d_top, d_top], color=c_line, lw=lw, transform=trans, zorder=3)
+        ax.plot([pipe_w/2, cyl_w/2], [d_top, d_top], color=c_line, lw=lw, transform=trans, zorder=3)
+
+        if is_hot:
+            rect_l = patches.Rectangle((-cyl_w/2 - 10*scale, d_base + 15*scale), 10*scale, d_top - d_base - 20*scale, facecolor=c_hot, edgecolor=c_line, lw=lw, transform=trans, zorder=2)
+            rect_r = patches.Rectangle((cyl_w/2, d_base + 15*scale), 10*scale, d_top - d_base - 20*scale, facecolor=c_hot, edgecolor=c_line, lw=lw, transform=trans, zorder=2)
+            ax.add_patch(rect_l)
+            ax.add_patch(rect_r)
+        else:
+            fin_h = 4 * scale
+            gap = 5 * scale
+            for i in range(5):
+                fy = d_base + 15*scale + i*(fin_h + gap)
+                fin_l = patches.Rectangle((-cyl_w/2 - 14*scale, fy), 14*scale, fin_h, facecolor=c_cold, edgecolor=c_line, lw=lw, transform=trans, zorder=2)
+                fin_r = patches.Rectangle((cyl_w/2, fy), 14*scale, fin_h, facecolor=c_cold, edgecolor=c_line, lw=lw, transform=trans, zorder=2)
+                ax.add_patch(fin_l)
+                ax.add_patch(fin_r)
+
+    draw_cyl(trans_H, True)
+    draw_cyl(trans_C, False)
+
+    xh = xc - d_top * np.sin(np.deg2rad(45))
+    yh = yc + d_top * np.cos(np.deg2rad(45))
+    xcold = xc + d_top * np.sin(np.deg2rad(45))
+    ycold = yc + d_top * np.cos(np.deg2rad(45))
+
+    reg_y = 165 * scale
+    reg_w = 40 * scale
+    reg_h = 30 * scale
+    pipe_y_top = reg_y + 8 * scale
+    pipe_y_bot = reg_y - 8 * scale
+
+    h_pipe_pts = [
+        (xh - pipe_w/2, yh), (xh - pipe_w/2, pipe_y_top), (xc - reg_w/2 + 2, pipe_y_top),
+        (xc - reg_w/2 + 2, pipe_y_bot), (xh + pipe_w/2, pipe_y_bot), (xh + pipe_w/2, yh)
+    ]
+    ax.add_patch(patches.Polygon(h_pipe_pts, facecolor=c_pipe_h, edgecolor=c_line, lw=lw, zorder=1))
+
+    c_pipe_pts = [
+        (xcold + pipe_w/2, ycold), (xcold + pipe_w/2, pipe_y_top), (xc + reg_w/2 - 2, pipe_y_top),
+        (xc + reg_w/2 - 2, pipe_y_bot), (xcold - pipe_w/2, pipe_y_bot), (xcold - pipe_w/2, ycold)
+    ]
+    ax.add_patch(patches.Polygon(c_pipe_pts, facecolor=c_pipe_c, edgecolor=c_line, lw=lw, zorder=1))
+
+    regen = patches.FancyBboxPatch(
+        (xc - reg_w/2, reg_y - reg_h/2), reg_w, reg_h,
+        boxstyle=f"round,pad={3}", facecolor=c_reg, edgecolor=c_line,
+        hatch='xxxx', lw=lw, zorder=2
+    )
+    ax.add_patch(regen)
+
+    flywheel = patches.Circle((xc, yc), 24*scale, facecolor='#666666', edgecolor=c_line, lw=lw, zorder=2)
+    ax.add_patch(flywheel)
+    ax.add_patch(patches.Circle((xc, yc), 4*scale, facecolor='black', zorder=5))
+
+    pist_H = patches.Rectangle((-cyl_w/2 + 1.5, 0), cyl_w - 3, pist_h, facecolor=c_pist, edgecolor=c_line, lw=lw, transform=trans_H, zorder=4)
+    pist_C = patches.Rectangle((-cyl_w/2 + 1.5, 0), cyl_w - 3, pist_h, facecolor=c_pist, edgecolor=c_line, lw=lw, transform=trans_C, zorder=4)
+    ax.add_patch(pist_H)
+    ax.add_patch(pist_C)
+
+    rod_H, = ax.plot([], [], color='#2c3e50', lw=3.5, zorder=3)
+    rod_C, = ax.plot([], [], color='#2c3e50', lw=3.5, zorder=3)
+    crank_pin_H = patches.Circle((0,0), 3.5*scale, facecolor='silver', edgecolor=c_line, lw=1, zorder=5)
+    crank_pin_C = patches.Circle((0,0), 3.5*scale, facecolor='silver', edgecolor=c_line, lw=1, zorder=5)
+    ax.add_patch(crank_pin_H)
+    ax.add_patch(crank_pin_C)
+
+    ax.set_xlim(0, 190)
+    ax.set_ylim(0, 210)
+    ax.axis('off')
+    fig.tight_layout(pad=0.1)
+
+    def animate(frame):
+        phi = np.deg2rad(frame)
+        alpha = np.deg2rad(alpha_deg)
+
+        dP_H = L + R * np.cos(phi)
+        dP_C = L + R * np.cos(phi - alpha)
+
+        pist_H.set_y(dP_H - pist_h/2)
+        pist_C.set_y(dP_C - pist_h/2)
+
+        pin_off = pist_h/2 - 5*scale
+        PX_H = xc - (dP_H - pin_off) * np.sin(np.deg2rad(45))
+        PY_H = yc + (dP_H - pin_off) * np.cos(np.deg2rad(45))
+
+        PX_C = xc + (dP_C - pin_off) * np.sin(np.deg2rad(45))
+        PY_C = yc + (dP_C - pin_off) * np.cos(np.deg2rad(45))
+
+        t_H = phi + np.deg2rad(135)
+        t_C = phi - alpha + np.deg2rad(45)
+
+        CX_H = xc + R * np.cos(t_H)
+        CY_H = yc + R * np.sin(t_H)
+
+        CX_C = xc + R * np.cos(t_C)
+        CY_C = yc + R * np.sin(t_C)
+
+        rod_H.set_data([CX_H, PX_H], [CY_H, PY_H])
+        rod_C.set_data([CX_C, PX_C], [CY_C, PY_C])
+
+        crank_pin_H.center = (CX_H, CY_H)
+        crank_pin_C.center = (CX_C, CY_C)
+
+        return pist_H, pist_C, rod_H, rod_C, crank_pin_H, crank_pin_C
+
+    ani = animation.FuncAnimation(fig, animate, frames=np.linspace(0, 360, 100, endpoint=False), blit=False)
+
+    with tempfile.NamedTemporaryFile(suffix=".gif", delete=False) as tmpfile:
+        tmp_path = tmpfile.name
+
+    ani.save(tmp_path, writer='pillow', fps=50)
     plt.close(fig)
 
     with open(tmp_path, "rb") as f:
@@ -766,7 +921,7 @@ res = vypocet_modelu(lp)
 if lp['mod_type'] == "Beta":
     animated_gif = generate_engine_animation(lp['alpha_deg'])
 else:
-    animated_gif = None
+    animated_gif = generate_alpha_engine_animation(lp['alpha_deg'])
 
 # =============================================================================
 # 4. ZOBRAZENÍ VÝSLEDKŮ 
@@ -806,9 +961,6 @@ with col_left:
 with col_right:
     if animated_gif:
         st.image(animated_gif, use_container_width=True)
-    else:
-        st.info(t("Animace schématu je aktuálně dostupná pouze pro modifikaci Beta.", 
-                  "The schematic animation is currently available only for the Beta modification."))
 
 # Plovoucí tlačítko Přepočítat model
 warn_container = st.container()
