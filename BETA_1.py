@@ -394,11 +394,10 @@ def generate_alpha_engine_animation(alpha_deg):
     stopka_h = 15 * scale     
     stopka_w = 12 * scale     
 
-    # Transformační matice pouze pro data (bez ax.transData pro přesné výpočty)
+    # Transformační matice pro přesné výpočty i vykreslování
     geom_trans_H = mtransforms.Affine2D().rotate_deg(45).translate(xc, yc)
     geom_trans_C = mtransforms.Affine2D().rotate_deg(-45).translate(xc, yc)
 
-    # Matice pro vykreslování v grafu
     trans_H = geom_trans_H + ax.transData
     trans_C = geom_trans_C + ax.transData
 
@@ -420,7 +419,7 @@ def generate_alpha_engine_animation(alpha_deg):
     ax.add_patch(cyl_H_bg)
     ax.add_patch(cyl_C_bg)
 
-    # Obrysy válců (vynecháno vrchní víko pro napojení trubek)
+    # Obrysy válců
     ax.plot([-cyl_w/2, -cyl_w/2], [d_base, d_top], color=c_line, lw=lw, transform=trans_H, zorder=3)
     ax.plot([cyl_w/2, cyl_w/2], [d_base, d_top], color=c_line, lw=lw, transform=trans_H, zorder=3)
     ax.plot([-cyl_w/2, -pipe_w/2], [d_top, d_top], color=c_line, lw=lw, transform=trans_H, zorder=3)
@@ -431,12 +430,21 @@ def generate_alpha_engine_animation(alpha_deg):
     ax.plot([-cyl_w/2, -pipe_w/2], [d_top, d_top], color=c_line, lw=lw, transform=trans_C, zorder=3)
     ax.plot([pipe_w/2, cyl_w/2], [d_top, d_top], color=c_line, lw=lw, transform=trans_C, zorder=3)
 
-    # Přesný převod souřadnic vík do globálního souřadnicového systému
+    # Přesný převod souřadnic "díry" ve válcích do globálního souřadnicového systému
     pL_H = geom_trans_H.transform_point((-pipe_w/2, d_top)) # Levá hrana teplé trubky
     pR_H = geom_trans_H.transform_point((pipe_w/2, d_top))  # Pravá hrana teplé trubky
     
     pL_C = geom_trans_C.transform_point((-pipe_w/2, d_top)) # Levá hrana studené trubky
     pR_C = geom_trans_C.transform_point((pipe_w/2, d_top))  # Pravá hrana studené trubky
+
+    x_L_H, y_L_H = pL_H
+    x_R_H, y_R_H = pR_H
+    
+    x_L_C, y_L_C = pL_C
+    x_R_C, y_R_C = pR_C
+
+    # Tloušťka horizontální trubky odvozená z vertikálního průmětu díry pro plynulý spoj
+    h_pipe_w = x_R_H - x_L_H  
 
     # Souřadnice regenerátoru a horizontálního potrubí
     reg_w = 26 * scale
@@ -444,33 +452,25 @@ def generate_alpha_engine_animation(alpha_deg):
     reg_y = 155 * scale
     reg_x0 = xc - reg_w/2
     reg_x1 = xc + reg_w/2
-    pipe_y_top = reg_y + pipe_w/2
-    pipe_y_bot = reg_y - pipe_w/2
-
-    # Průsečíky šikmých trubek s horizontálními (zachování tloušťky a 45° sklonu)
-    # Teplá trubka (sklon doleva nahoru, dx = -dy)
-    x_L_top_H = pL_H[0] - (pipe_y_top - pL_H[1])
-    x_R_bot_H = pR_H[0] - (pipe_y_bot - pR_H[1])
     
-    # Studená trubka (sklon doprava nahoru, dx = dy)
-    x_R_top_C = pR_C[0] + (pipe_y_top - pR_C[1])
-    x_L_bot_C = pL_C[0] + (pipe_y_bot - pL_C[1])
+    pipe_y_top = reg_y + h_pipe_w/2
+    pipe_y_bot = reg_y - h_pipe_w/2
 
     # Bílé výplně trubek (zcela prázdné)
-    pipe_H_poly = patches.Polygon([pL_H, (x_L_top_H, pipe_y_top), (reg_x0, pipe_y_top), (reg_x0, pipe_y_bot), (x_R_bot_H, pipe_y_bot), pR_H], facecolor='white', edgecolor='none', zorder=2)
-    pipe_C_poly = patches.Polygon([pR_C, (x_R_top_C, pipe_y_top), (reg_x1, pipe_y_top), (reg_x1, pipe_y_bot), (x_L_bot_C, pipe_y_bot), pL_C], facecolor='white', edgecolor='none', zorder=2)
+    pipe_H_poly = patches.Polygon([pL_H, (x_L_H, pipe_y_top), (reg_x0, pipe_y_top), (reg_x0, pipe_y_bot), (x_R_H, pipe_y_bot), pR_H], facecolor='white', edgecolor='none', zorder=2)
+    pipe_C_poly = patches.Polygon([pR_C, (x_R_C, pipe_y_top), (reg_x1, pipe_y_top), (reg_x1, pipe_y_bot), (x_L_C, pipe_y_bot), pL_C], facecolor='white', edgecolor='none', zorder=2)
     ax.add_patch(pipe_H_poly)
     ax.add_patch(pipe_C_poly)
 
-    # Černé obrysy trubek s 45° šikmými návaznostmi
-    ax.plot([pL_H[0], x_L_top_H, reg_x0], [pL_H[1], pipe_y_top, pipe_y_top], color=c_line, lw=lw, zorder=3)
-    ax.plot([pR_H[0], x_R_bot_H, reg_x0], [pR_H[1], pipe_y_bot, pipe_y_bot], color=c_line, lw=lw, zorder=3)
+    # Černé obrysy trubek (Vertikálně z okrajů válce a pak vodorovně)
+    ax.plot([x_L_H, x_L_H, reg_x0], [y_L_H, pipe_y_top, pipe_y_top], color=c_line, lw=lw, zorder=3)
+    ax.plot([x_R_H, x_R_H, reg_x0], [y_R_H, pipe_y_bot, pipe_y_bot], color=c_line, lw=lw, zorder=3)
     
-    ax.plot([pR_C[0], x_R_top_C, reg_x1], [pR_C[1], pipe_y_top, pipe_y_top], color=c_line, lw=lw, zorder=3)
-    ax.plot([pL_C[0], x_L_bot_C, reg_x1], [pL_C[1], pipe_y_bot, pipe_y_bot], color=c_line, lw=lw, zorder=3)
+    ax.plot([x_R_C, x_R_C, reg_x1], [y_R_C, pipe_y_top, pipe_y_top], color=c_line, lw=lw, zorder=3)
+    ax.plot([x_L_C, x_L_C, reg_x1], [y_L_C, pipe_y_bot, pipe_y_bot], color=c_line, lw=lw, zorder=3)
 
     # Regenerátor (pouze obrys s křížkováním)
-    regen = patches.FancyBboxPatch((reg_x0, pipe_y_bot - 2*scale), reg_w, pipe_w + 4*scale, boxstyle=f"round,pad={2}", facecolor='white', edgecolor=c_line, hatch='xxxx', lw=lw, zorder=4)
+    regen = patches.FancyBboxPatch((reg_x0, pipe_y_bot - 2*scale), reg_w, h_pipe_w + 4*scale, boxstyle=f"round,pad={2}", facecolor='white', edgecolor=c_line, hatch='xxxx', lw=lw, zorder=4)
     ax.add_patch(regen)
 
     # Setrvačník (ŠEDÝ)
@@ -478,7 +478,7 @@ def generate_alpha_engine_animation(alpha_deg):
     ax.add_patch(flywheel)
     ax.add_patch(patches.Circle((xc, yc), 3*scale, facecolor='black', zorder=5))
 
-    # Písty ve tvaru T (stopka + disk)
+    # Písty ve tvaru T
     w = cyl_w - 3
     pist_H_pts = [
         (w/2, 0), (-w/2, 0), (-w/2, -pist_body_h),
@@ -486,7 +486,6 @@ def generate_alpha_engine_animation(alpha_deg):
         (stopka_w/2, -(pist_body_h + stopka_h)), (stopka_w/2, -pist_body_h), (w/2, -pist_body_h)
     ]
     
-    # Posun pro čep (aby osa otáčení byla uprostřed disku pístu)
     pin_off = pist_body_h/2
     pist_H_pts_shifted = [(x, y + pin_off) for x, y in pist_H_pts]
     
@@ -495,10 +494,10 @@ def generate_alpha_engine_animation(alpha_deg):
     ax.add_patch(pist_H_poly)
     ax.add_patch(pist_C_poly)
 
-    # Ojnice a centrální čep (Změněno na černou barvu - facecolor='black')
+    # Ojnice a centrální čep (ČERNÝ)
     rod_H, = ax.plot([], [], color=c_line, lw=3, zorder=3)
     rod_C, = ax.plot([], [], color=c_line, lw=3, zorder=3)
-    crank_pin = patches.Circle((0,0), 3.5*scale, facecolor='black', edgecolor=c_line, lw=lw, zorder=5)
+    crank_pin = patches.Circle((0,0), 3.5*scale, facecolor='black', edgecolor=c_line, lw=1, zorder=5)
     ax.add_patch(crank_pin)
 
     ax.set_xlim(0, 190)
@@ -508,7 +507,6 @@ def generate_alpha_engine_animation(alpha_deg):
 
     # KINEMATIKA ALFA MOTORU
     def animate(frame):
-        # OPAČNÝ SMĚR OTÁČENÍ pro správný termodynamický chod
         theta = np.deg2rad(-frame)
         CX = xc + R * np.cos(theta)
         CY = yc + R * np.sin(theta)
@@ -522,11 +520,9 @@ def generate_alpha_engine_animation(alpha_deg):
         B_C = -2 * (s45 * dx + c45 * dy)
         d_C = (-B_C + np.sqrt(B_C**2 - 4 * (R**2 - L**2))) / 2
 
-        # Pozice pístů 
         pist_H_poly.set_xy([(x, y + d_H) for x, y in pist_H_pts_shifted])
         pist_C_poly.set_xy([(x, y + d_C) for x, y in pist_H_pts_shifted])
 
-        # Vykreslení ojnic a čepů
         PX_H, PY_H = xc - d_H * s45, yc + d_H * c45
         PX_C, PY_C = xc + d_C * s45, yc + d_C * c45
 
