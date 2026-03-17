@@ -456,7 +456,7 @@ def generate_alpha_engine_animation(alpha_deg):
     regen = patches.FancyBboxPatch((reg_x0, pipe_y_bot - 2*scale), reg_w, pipe_w + 4*scale, boxstyle=f"round,pad={2}", facecolor='white', edgecolor=c_line, hatch='xxxx', lw=lw, zorder=4)
     ax.add_patch(regen)
 
-    # Setrvačník
+    # Setrvačník a středová hřídel
     flywheel = patches.Circle((xc, yc), 24*scale, facecolor='silver', edgecolor=c_line, lw=lw, zorder=1)
     ax.add_patch(flywheel)
     ax.add_patch(patches.Circle((xc, yc), 3*scale, facecolor='black', zorder=5))
@@ -494,7 +494,7 @@ def generate_alpha_engine_animation(alpha_deg):
         dx, dy = CX - xc, CY - yc
         s45 = c45 = 0.70710678
 
-        # Výpočet přesné polohy čepu pístů pomocí průsečíků kružnic (skutečná kinematika ojnice)
+        # Výpočet přesné polohy čepu pístů pomocí průsečíků kružnic
         # Teplý píst
         B_H = 2 * (s45 * dx - c45 * dy)
         d_H = (-B_H + np.sqrt(B_H**2 - 4 * (R**2 - L**2))) / 2
@@ -503,7 +503,7 @@ def generate_alpha_engine_animation(alpha_deg):
         B_C = -2 * (s45 * dx + c45 * dy)
         d_C = (-B_C + np.sqrt(B_C**2 - 4 * (R**2 - L**2))) / 2
 
-        # Pozice obdélníků pístů (v lokálních souřadnicích válce)
+        # Pozice obdélníků pístů
         pin_off = pist_h / 2
         pist_H.set_y(d_H - pin_off)
         pist_C.set_y(d_C - pin_off)
