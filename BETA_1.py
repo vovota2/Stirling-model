@@ -389,37 +389,68 @@ def generate_alpha_engine_animation(alpha_deg):
     d_top = 110 * scale
     pipe_w = 12 * scale
     
+    # NOVÉ VÝŠKY A POSUNY PRO OHŘÍVAČ/CHLADIČ
+    hot_offset = 10 * scale   # posun od horního okraje (d_top)
+    cold_offset = 10 * scale  # posun od horního okraje (d_top)
+    hot_h = 30 * scale       # NOVÁ MENŠÍ VÝŠKA OHŘÍVAČE
+    cold_body_h = 45 * scale # výška těla chladiče
+
     # Kratší písty (stopka + disk)
     pist_body_h = 10 * scale   
     stopka_h = 15 * scale     
     stopka_w = 12 * scale     
 
-    # Transformační matice pro přesné výpočty i vykreslování
+    # Transformační matice pro data
     geom_trans_H = mtransforms.Affine2D().rotate_deg(45).translate(xc, yc)
     geom_trans_C = mtransforms.Affine2D().rotate_deg(-45).translate(xc, yc)
 
+    # Matice pro vykreslování v grafu
     trans_H = geom_trans_H + ax.transData
     trans_C = geom_trans_C + ax.transData
 
-    # Ohřívač (červený blok pod válcem)
-    heat_block = patches.Rectangle((-cyl_w/2 - 8*scale, d_base + 10*scale), cyl_w + 16*scale, 45*scale, facecolor=c_hot, edgecolor=c_line, lw=lw, transform=trans_H, zorder=1)
-    ax.add_patch(heat_block)
+    # OHŘÍVAČ (červený blok s zkosenými rohy, posunutý k hornímu okraji)
+    # Definice bodů pro jeden velký zkosený ohřívač (hot side)
+    # Polygon obepíná válec
+    h_top_y = d_top - hot_offset
+    h_bot_y = h_top_y - hot_h
+    h_dx = 2.5 * scale # zkosení x
+    h_dy = 4.0 * scale # zkosení y
 
-    # Chladič (modrá žebra pod válcem)
+    h_poly_pts = [
+        (-cyl_w/2, h_top_y), (-cyl_w/2 - 8*scale + h_dx, h_top_y), 
+        (-cyl_w/2 - 8*scale, h_top_y - h_dy), (-cyl_w/2 - 8*scale, h_bot_y + h_dy), 
+        (-cyl_w/2 - 8*scale + h_dx, h_bot_y), (-cyl_w/2, h_bot_y), 
+        (cyl_w/2, h_bot_y), (cyl_w/2 + 8*scale - h_dx, h_bot_y), 
+        (cyl_w/2 + 8*scale, h_bot_y + h_dy), (cyl_w/2 + 8*scale, h_top_y - h_dy), 
+        (cyl_w/2 + 8*scale - h_dx, h_top_y), (cyl_w/2, h_top_y),
+        (-cyl_w/2, h_top_y) # zavření polygonu
+    ]
+    hot_block = patches.Polygon(h_poly_pts, facecolor=c_hot, edgecolor=c_line, lw=lw, transform=trans_H, zorder=1)
+    ax.add_patch(hot_block)
+
+    # CHLADIČ (modré tělo + žebra, posunutý k hornímu okraji)
+    # Tělo chladiče (obdélník)
+    cold_top_y = d_top - cold_offset
+    cold_bot_y = cold_top_y - cold_body_h
+    cold_body = patches.Rectangle((-cyl_w/2 - 14*scale, cold_bot_y), cyl_w + 28*scale, cold_body_h, facecolor=c_cold, edgecolor=c_line, lw=lw, transform=trans_C, zorder=1)
+    ax.add_patch(cold_body)
+
+    # Modrá žebra na těle chladiče - začínající u horního okraje těla
     fin_h = 4 * scale          
     gap_h = 6 * scale 
     for i in range(5):
-        fy = d_base + 5*scale + i*(fin_h + gap_h)
-        fin = patches.Rectangle((-cyl_w/2 - 12*scale, fy), cyl_w + 24*scale, fin_h, facecolor=c_cold, edgecolor=c_line, lw=lw, transform=trans_C, zorder=1)
+        # Žebra jdou dolů od horního okraje těla
+        fy = d_top - cold_offset - (i+1)*(fin_h + gap_h)
+        fin = patches.Rectangle((-cyl_w/2 - 12*scale, fy), cyl_w + 24*scale, fin_h, facecolor=c_cold, edgecolor=c_line, lw=lw, transform=trans_C, zorder=2)
         ax.add_patch(fin)
 
-    # Válce (vnitřní bílá plocha)
+    # Válce (vnitřní bílá plocha, která překryje prostředky chladiče/ohřívače)
     cyl_H_bg = patches.Rectangle((-cyl_w/2, d_base), cyl_w, d_top - d_base, facecolor='white', edgecolor='none', transform=trans_H, zorder=2)
     cyl_C_bg = patches.Rectangle((-cyl_w/2, d_base), cyl_w, d_top - d_base, facecolor='white', edgecolor='none', transform=trans_C, zorder=2)
     ax.add_patch(cyl_H_bg)
     ax.add_patch(cyl_C_bg)
 
-    # Obrysy válců
+    # Obrysy válců (vynecháno vrchní víko pro napojení trubek)
     ax.plot([-cyl_w/2, -cyl_w/2], [d_base, d_top], color=c_line, lw=lw, transform=trans_H, zorder=3)
     ax.plot([cyl_w/2, cyl_w/2], [d_base, d_top], color=c_line, lw=lw, transform=trans_H, zorder=3)
     ax.plot([-cyl_w/2, -pipe_w/2], [d_top, d_top], color=c_line, lw=lw, transform=trans_H, zorder=3)
@@ -430,12 +461,12 @@ def generate_alpha_engine_animation(alpha_deg):
     ax.plot([-cyl_w/2, -pipe_w/2], [d_top, d_top], color=c_line, lw=lw, transform=trans_C, zorder=3)
     ax.plot([pipe_w/2, cyl_w/2], [d_top, d_top], color=c_line, lw=lw, transform=trans_C, zorder=3)
 
-    # Přesný převod souřadnic "díry" ve válcích do globálního souřadnicového systému
-    pL_H = geom_trans_H.transform_point((-pipe_w/2, d_top)) # Levá hrana teplé trubky
-    pR_H = geom_trans_H.transform_point((pipe_w/2, d_top))  # Pravá hrana teplé trubky
+    # Přesný matematický výpočet zkosených průsečíků pro trubky v globálních souřadnicích
+    pL_H = geom_trans_H.transform_point((-pipe_w/2, d_top)) # Levá hrana levé trubky
+    pR_H = geom_trans_H.transform_point((pipe_w/2, d_top))  # Pravá hrana levé trubky
     
-    pL_C = geom_trans_C.transform_point((-pipe_w/2, d_top)) # Levá hrana studené trubky
-    pR_C = geom_trans_C.transform_point((pipe_w/2, d_top))  # Pravá hrana studené trubky
+    pL_C = geom_trans_C.transform_point((-pipe_w/2, d_top)) # Levá hrana pravé trubky
+    pR_C = geom_trans_C.transform_point((pipe_w/2, d_top))  # Pravá hrana pravé trubky
 
     x_L_H, y_L_H = pL_H
     x_R_H, y_R_H = pR_H
@@ -473,7 +504,7 @@ def generate_alpha_engine_animation(alpha_deg):
     regen = patches.FancyBboxPatch((reg_x0, pipe_y_bot - 2*scale), reg_w, h_pipe_w + 4*scale, boxstyle=f"round,pad={2}", facecolor='white', edgecolor=c_line, hatch='xxxx', lw=lw, zorder=4)
     ax.add_patch(regen)
 
-    # Setrvačník (ŠEDÝ)
+    # Setrvačník
     flywheel = patches.Circle((xc, yc), 24*scale, facecolor='#666666', edgecolor=c_line, lw=lw, zorder=1)
     ax.add_patch(flywheel)
     ax.add_patch(patches.Circle((xc, yc), 3*scale, facecolor='black', zorder=5))
@@ -494,11 +525,18 @@ def generate_alpha_engine_animation(alpha_deg):
     ax.add_patch(pist_H_poly)
     ax.add_patch(pist_C_poly)
 
-    # Ojnice a centrální čep (ČERNÝ)
+    # NOVÝ KLOUB KLIKOVKY (černý okraj, šedý střed)
+    # Vnější černý prstenec
+    crank_pin_outer = patches.Circle((0,0), 3.5*scale, facecolor='black', edgecolor=c_line, lw=lw, zorder=5)
+    # Vnitřní šedý střed
+    crank_pin_inner = patches.Circle((0,0), 2.0*scale, facecolor='#666666', edgecolor='none', zorder=6)
+    
+    ax.add_patch(crank_pin_outer)
+    ax.add_patch(crank_pin_inner)
+    
+    # Ojnice
     rod_H, = ax.plot([], [], color=c_line, lw=3, zorder=3)
     rod_C, = ax.plot([], [], color=c_line, lw=3, zorder=3)
-    crank_pin = patches.Circle((0,0), 3.5*scale, facecolor='black', edgecolor=c_line, lw=1, zorder=5)
-    ax.add_patch(crank_pin)
 
     ax.set_xlim(0, 190)
     ax.set_ylim(0, 210)
@@ -507,30 +545,38 @@ def generate_alpha_engine_animation(alpha_deg):
 
     # KINEMATIKA ALFA MOTORU
     def animate(frame):
+        # Otáčení setrvačníku
         theta = np.deg2rad(-frame)
         CX = xc + R * np.cos(theta)
         CY = yc + R * np.sin(theta)
         dx, dy = CX - xc, CY - yc
         s45 = c45 = 0.70710678
 
-        # Výpočet polohy pístů (1 společný čep vytváří přirozeně 90° fázový posuv)
+        # Výpočet přesné polohy čepu pístů pomocí průsečíků kružnic
+        # Teplý píst
         B_H = 2 * (s45 * dx - c45 * dy)
         d_H = (-B_H + np.sqrt(B_H**2 - 4 * (R**2 - L**2))) / 2
         
+        # Studený píst (díky V-konstrukci a 1 čepu vzniká 90° fázový posun zcela přirozeně)
         B_C = -2 * (s45 * dx + c45 * dy)
         d_C = (-B_C + np.sqrt(B_C**2 - 4 * (R**2 - L**2))) / 2
 
+        # Pozice pístů (v lokálních souřadnicích válce)
         pist_H_poly.set_xy([(x, y + d_H) for x, y in pist_H_pts_shifted])
         pist_C_poly.set_xy([(x, y + d_C) for x, y in pist_H_pts_shifted])
 
+        # Globální souřadnice čepů na pístech pro vykreslení ojnic
         PX_H, PY_H = xc - d_H * s45, yc + d_H * c45
         PX_C, PY_C = xc + d_C * s45, yc + d_C * c45
 
         rod_H.set_data([CX, PX_H], [CY, PY_H])
         rod_C.set_data([CX, PX_C], [CY, PY_C])
-        crank_pin.center = (CX, CY)
+        
+        # AKTUALIZACE POZICE OBOU ČÁSTÍ KLOUBU KLIKOVKY
+        crank_pin_outer.center = (CX, CY)
+        crank_pin_inner.center = (CX, CY)
 
-        return pist_H_poly, pist_C_poly, rod_H, rod_C, crank_pin
+        return pist_H_poly, pist_C_poly, rod_H, rod_C, crank_pin_outer, crank_pin_inner
 
     ani = animation.FuncAnimation(fig, animate, frames=np.linspace(0, 360, 100, endpoint=False), blit=False)
     
