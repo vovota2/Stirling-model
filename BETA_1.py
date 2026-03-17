@@ -379,7 +379,7 @@ def generate_alpha_engine_animation(alpha_deg):
     lw = 1.5
     scale = 0.85
 
-    # Základní geometrie hřídele a válců (zachováno pro delší ojnice a posunuté válce)
+    # Základní geometrie hřídele a válců
     xc = 95 * scale
     yc = 40 * scale
     R = 15 * scale
@@ -389,12 +389,12 @@ def generate_alpha_engine_animation(alpha_deg):
     d_top = 110 * scale
     pipe_w = 12 * scale
     
-    # NOVÉ: Kratší písty (stopka + disk)
-    pist_body_h = 10 * scale   # výška disku pístu
-    stopka_h = 15 * scale     # výška stopky pístu
-    stopka_w = 12 * scale     # šířka stopky pístu
+    # Kratší písty (stopka + disk)
+    pist_body_h = 10 * scale   
+    stopka_h = 15 * scale     
+    stopka_w = 12 * scale     
 
-    # Matice pro otočení válců o +45° (teplý) a -45° (studený)
+    # Matice pro otočení válců (pro vykreslování objektů)
     trans_H = mtransforms.Affine2D().rotate_deg(45).translate(xc, yc) + ax.transData
     trans_C = mtransforms.Affine2D().rotate_deg(-45).translate(xc, yc) + ax.transData
 
@@ -427,12 +427,18 @@ def generate_alpha_engine_animation(alpha_deg):
     ax.plot([-cyl_w/2, -pipe_w/2], [d_top, d_top], color=c_line, lw=lw, transform=trans_C, zorder=3)
     ax.plot([pipe_w/2, cyl_w/2], [d_top, d_top], color=c_line, lw=lw, transform=trans_C, zorder=3)
 
-    # Přesný matematický výpočet zkosených průsečíků pro trubky v globálních souřadnicích
-    pL_H = trans_H.transform_point((-pipe_w/2, d_top)) # Levá hrana levé trubky
-    pR_H = trans_H.transform_point((pipe_w/2, d_top))  # Pravá hrana levé trubky
+    # PŘESNÝ MATEMATICKÝ VÝPOČET ZKOSENÝCH PRŮSEČÍKŮ TRUBEK
+    def get_rotated_pt(x, y, angle_deg, cx, cy):
+        rad = np.deg2rad(angle_deg)
+        nx = x * np.cos(rad) - y * np.sin(rad)
+        ny = x * np.sin(rad) + y * np.cos(rad)
+        return (cx + nx, cy + ny)
+
+    pL_H = get_rotated_pt(-pipe_w/2, d_top, 45, xc, yc) # Levá hrana teplé trubky
+    pR_H = get_rotated_pt(pipe_w/2, d_top, 45, xc, yc)  # Pravá hrana teplé trubky
     
-    pL_C = trans_C.transform_point((-pipe_w/2, d_top)) # Levá hrana pravé trubky
-    pR_C = trans_C.transform_point((pipe_w/2, d_top))  # Pravá hrana pravé trubky
+    pL_C = get_rotated_pt(-pipe_w/2, d_top, -45, xc, yc) # Levá hrana studené trubky
+    pR_C = get_rotated_pt(pipe_w/2, d_top, -45, xc, yc)  # Pravá hrana studené trubky
 
     # Souřadnice regenerátoru a horizontálního potrubí
     reg_w = 26 * scale
@@ -443,7 +449,7 @@ def generate_alpha_engine_animation(alpha_deg):
     pipe_y_top = reg_y + pipe_w/2
     pipe_y_bot = reg_y - pipe_w/2
 
-    # NOVÉ: Bílé výplně trubek (zcela prázdné, bez barvy média)
+    # Bílé výplně trubek (zcela prázdné)
     pipe_H_poly = patches.Polygon([pL_H, (pL_H[0], pipe_y_top), (reg_x0, pipe_y_top), (reg_x0, pipe_y_bot), (pR_H[0], pipe_y_bot), pR_H], facecolor='white', edgecolor='none', zorder=2)
     pipe_C_poly = patches.Polygon([pR_C, (pR_C[0], pipe_y_top), (reg_x1, pipe_y_top), (reg_x1, pipe_y_bot), (pL_C[0], pipe_y_bot), pL_C], facecolor='white', edgecolor='none', zorder=2)
     ax.add_patch(pipe_H_poly)
@@ -456,17 +462,16 @@ def generate_alpha_engine_animation(alpha_deg):
     ax.plot([pL_C[0], pL_C[0], reg_x1], [pL_C[1], pipe_y_bot, pipe_y_bot], color=c_line, lw=lw, zorder=3)
     ax.plot([pR_C[0], pR_C[0], reg_x1], [pR_C[1], pipe_y_top, pipe_y_top], color=c_line, lw=lw, zorder=3)
 
-    # Regenerátor (pouze obrys s křížkováním, nevybarvený)
+    # Regenerátor (pouze obrys s křížkováním)
     regen = patches.FancyBboxPatch((reg_x0, pipe_y_bot - 2*scale), reg_w, pipe_w + 4*scale, boxstyle=f"round,pad={2}", facecolor='white', edgecolor=c_line, hatch='xxxx', lw=lw, zorder=4)
     ax.add_patch(regen)
 
-    # Setrvačník
-    flywheel = patches.Circle((xc, yc), 24*scale, facecolor='white', edgecolor=c_line, lw=lw, zorder=1)
+    # Setrvačník (ŠEDÝ)
+    flywheel = patches.Circle((xc, yc), 24*scale, facecolor='#666666', edgecolor=c_line, lw=lw, zorder=1)
     ax.add_patch(flywheel)
     ax.add_patch(patches.Circle((xc, yc), 3*scale, facecolor='black', zorder=5))
 
-    # NOVÉ: Kratší písty ve tvaru T (stopka + disk) - šedé
-    # Polygon pístu (v lokálních souřadnicích válce, čep je uprostřed stopky)
+    # Písty ve tvaru T (stopka + disk)
     w = cyl_w - 3
     pist_H_pts = [
         (w/2, 0), (-w/2, 0), (-w/2, -pist_body_h),
@@ -474,7 +479,7 @@ def generate_alpha_engine_animation(alpha_deg):
         (stopka_w/2, -(pist_body_h + stopka_h)), (stopka_w/2, -pist_body_h), (w/2, -pist_body_h)
     ]
     
-    # Čep pístu je uprostřed disku (přesunutí geometrie, aby čep byl na ose y=0)
+    # Posun pro čep (aby osa otáčení byla uprostřed disku pístu)
     pin_off = pist_body_h/2
     pist_H_pts_shifted = [(x, y + pin_off) for x, y in pist_H_pts]
     
@@ -483,7 +488,7 @@ def generate_alpha_engine_animation(alpha_deg):
     ax.add_patch(pist_H_poly)
     ax.add_patch(pist_C_poly)
 
-    # Ojnice a centrální čep (pro Alfu je jen jeden čep!)
+    # Ojnice a centrální čep
     rod_H, = ax.plot([], [], color=c_line, lw=3, zorder=3)
     rod_C, = ax.plot([], [], color=c_line, lw=3, zorder=3)
     crank_pin = patches.Circle((0,0), 3.5*scale, facecolor='white', edgecolor=c_line, lw=lw, zorder=5)
@@ -503,20 +508,18 @@ def generate_alpha_engine_animation(alpha_deg):
         dx, dy = CX - xc, CY - yc
         s45 = c45 = 0.70710678
 
-        # Výpočet přesné polohy čepu pístů pomocí průsečíků kružnic
-        # Teplý píst
+        # Výpočet polohy pístů (1 společný čep vytváří přirozeně 90° fázový posuv)
         B_H = 2 * (s45 * dx - c45 * dy)
         d_H = (-B_H + np.sqrt(B_H**2 - 4 * (R**2 - L**2))) / 2
         
-        # Studený píst (díky V-konstrukci a 1 čepu vzniká 90° fázový posun zcela přirozeně)
         B_C = -2 * (s45 * dx + c45 * dy)
         d_C = (-B_C + np.sqrt(B_C**2 - 4 * (R**2 - L**2))) / 2
 
-        # Pozice pístů (v lokálních souřadnicích válce)
+        # Pozice pístů 
         pist_H_poly.set_xy([(x, y + d_H) for x, y in pist_H_pts_shifted])
         pist_C_poly.set_xy([(x, y + d_C) for x, y in pist_H_pts_shifted])
 
-        # Globální souřadnice čepů na pístech pro vykreslení ojnic
+        # Vykreslení ojnic a čepů
         PX_H, PY_H = xc - d_H * s45, yc + d_H * c45
         PX_C, PY_C = xc + d_C * s45, yc + d_C * c45
 
