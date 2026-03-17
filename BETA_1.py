@@ -386,9 +386,9 @@ def generate_alpha_engine_animation(alpha_deg):
     xc = 95 * scale
     yc = 45 * scale
     R = 15 * scale
-    L = 45 * scale
+    L = 60 * scale        # ZDELŠENÁ OJNICE (původně 45)
     cyl_w = 34 * scale
-    d_base = 25 * scale
+    d_base = 35 * scale   # POSUNUTO VÝŠE kvůli delší ojnici (původně 25)
     d_top = 110 * scale
     pipe_w = 12 * scale
     pist_h = 28 * scale
@@ -459,12 +459,11 @@ def generate_alpha_engine_animation(alpha_deg):
     ax.add_patch(pist_H)
     ax.add_patch(pist_C)
 
+    # OJNICE A JEDEN SPOLEČNÝ ČEP
     rod_H, = ax.plot([], [], color='#2c3e50', lw=3.5, zorder=3)
     rod_C, = ax.plot([], [], color='#2c3e50', lw=3.5, zorder=3)
-    crank_pin_H = patches.Circle((0,0), 3.5*scale, facecolor='silver', edgecolor=c_line, lw=1, zorder=5)
-    crank_pin_C = patches.Circle((0,0), 3.5*scale, facecolor='silver', edgecolor=c_line, lw=1, zorder=5)
-    ax.add_patch(crank_pin_H)
-    ax.add_patch(crank_pin_C)
+    crank_pin = patches.Circle((0,0), 3.5*scale, facecolor='silver', edgecolor=c_line, lw=1, zorder=5)
+    ax.add_patch(crank_pin)
 
     ax.set_xlim(0, 190)
     ax.set_ylim(0, 210)
@@ -472,38 +471,47 @@ def generate_alpha_engine_animation(alpha_deg):
     fig.tight_layout(pad=0.1)
 
     def animate(frame):
-        phi = np.deg2rad(frame)
-        alpha = np.deg2rad(alpha_deg)
+        # OPAČNÝ SMĚR OTÁČENÍ pro správný termodynamický chod
+        theta = np.deg2rad(-frame)
 
-        dP_H = L + R * np.cos(phi)
-        dP_C = L + R * np.cos(phi - alpha)
+        # Pozice JEDNOHO společného čepu
+        CX = xc + R * np.cos(theta)
+        CY = yc + R * np.sin(theta)
+        
+        dx = CX - xc
+        dy = CY - yc
+        s45 = c45 = 0.70710678
+        C_eq = R**2 - L**2
 
-        pist_H.set_y(dP_H - pist_h/2)
-        pist_C.set_y(dP_C - pist_h/2)
+        # PŘESNÝ KINEMATICKÝ VÝPOČET polohy pístních čepů 
+        # (zaručí, že písty přesně kopírují 1 čep a dodržují 90° fázový posuv)
+        
+        # Teplý píst (osa pod +45°)
+        B_H = 2 * (dx * s45 - dy * c45)
+        d_H = (-B_H + np.sqrt(B_H**2 - 4 * C_eq)) / 2
+        
+        # Studený píst (osa pod -45°)
+        B_C = -2 * (dx * s45 + dy * c45)
+        d_C = (-B_C + np.sqrt(B_C**2 - 4 * C_eq)) / 2
 
+        # Nastavení polohy pístů
         pin_off = pist_h/2 - 5*scale
-        PX_H = xc - (dP_H - pin_off) * np.sin(np.deg2rad(45))
-        PY_H = yc + (dP_H - pin_off) * np.cos(np.deg2rad(45))
+        pist_H.set_y(d_H + pin_off - pist_h/2)
+        pist_C.set_y(d_C + pin_off - pist_h/2)
 
-        PX_C = xc + (dP_C - pin_off) * np.sin(np.deg2rad(45))
-        PY_C = yc + (dP_C - pin_off) * np.cos(np.deg2rad(45))
+        # Globální souřadnice pístních čepů pro vykreslení ojnic
+        PX_H = xc - d_H * s45
+        PY_H = yc + d_H * c45
 
-        t_H = phi + np.deg2rad(135)
-        t_C = phi - alpha + np.deg2rad(45)
+        PX_C = xc + d_C * s45
+        PY_C = yc + d_C * c45
 
-        CX_H = xc + R * np.cos(t_H)
-        CY_H = yc + R * np.sin(t_H)
+        rod_H.set_data([CX, PX_H], [CY, PY_H])
+        rod_C.set_data([CX, PX_C], [CY, PY_C])
+        
+        crank_pin.center = (CX, CY)
 
-        CX_C = xc + R * np.cos(t_C)
-        CY_C = yc + R * np.sin(t_C)
-
-        rod_H.set_data([CX_H, PX_H], [CY_H, PY_H])
-        rod_C.set_data([CX_C, PX_C], [CY_C, PY_C])
-
-        crank_pin_H.center = (CX_H, CY_H)
-        crank_pin_C.center = (CX_C, CY_C)
-
-        return pist_H, pist_C, rod_H, rod_C, crank_pin_H, crank_pin_C
+        return pist_H, pist_C, rod_H, rod_C, crank_pin
 
     ani = animation.FuncAnimation(fig, animate, frames=np.linspace(0, 360, 100, endpoint=False), blit=False)
 
@@ -518,7 +526,6 @@ def generate_alpha_engine_animation(alpha_deg):
 
     os.remove(tmp_path)
     return gif_bytes
-
 # =============================================================================
 # 1. BOČNÍ PANEL - VSTUPY
 # =============================================================================
