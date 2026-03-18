@@ -382,15 +382,16 @@ def generate_alpha_engine_animation(alpha_deg):
     # Základní geometrie hřídele a válců
     xc = 95 * scale
     yc = 40 * scale
-    R = 18 * scale         # KLIKA ZVĚTŠENA O 20% (z 15 na 18) pro větší zdvih
-    L = 70 * scale         # OJNICE PRODLOUŽENA (aby písty nenarazily do dna válce)
+    R = 15 * scale
+    L = 60 * scale
     cyl_w = 34 * scale
-    d_base = 40 * scale    # SPODEK VÁLCE POSUNUT VÝŠE
+    d_base = 35 * scale
     d_top = 110 * scale
     pipe_w = 12 * scale
     
-    hot_offset = 10 * scale   
-    cold_offset = 15 * scale  
+    # OBA VÝMĚNÍKY POSUNUTY STEJNÝ KOUSEK OD HORNÍHO OKRAJE
+    hot_offset = 5 * scale   
+    cold_offset = 5 * scale  
     hot_h = 30 * scale       
     cold_body_h = 30 * scale 
 
@@ -522,8 +523,8 @@ def generate_alpha_engine_animation(alpha_deg):
     regen = patches.FancyBboxPatch((reg_x0, pipe_y_bot - 6*scale), reg_w, h_pipe_w + 12*scale, boxstyle=f"round,pad={3}", facecolor='white', edgecolor=c_line, hatch='xxxx', lw=lw, zorder=6)
     ax.add_patch(regen)
 
-    # Setrvačník (mírně zvětšen kvůli větší klice)
-    fw_R = 26 * scale
+    # Setrvačník
+    fw_R = 24 * scale
     flywheel = patches.Circle((xc, yc), fw_R, facecolor='#666666', edgecolor=c_line, lw=lw, zorder=1)
     ax.add_patch(flywheel)
     ax.add_patch(patches.Circle((xc, yc), 3*scale, facecolor='black', zorder=5))
