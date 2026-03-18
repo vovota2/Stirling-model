@@ -382,15 +382,16 @@ def generate_alpha_engine_animation(alpha_deg):
     # Základní geometrie hřídele a válců
     xc = 95 * scale
     yc = 40 * scale
-    R = 15 * scale
-    L = 60 * scale
+    R = 18 * scale         # VĚTŠÍ ZDVIH (klika zvětšena z 15 na 18)
+    L = 74 * scale         # PRODLOUŽENÉ OJNICE (z 60 na 74 pro zmenšení mrtvého objemu)
     cyl_w = 34 * scale
-    d_base = 35 * scale
+    d_base = 40 * scale    # Spodek válce mírně zvednut
     d_top = 110 * scale
     pipe_w = 12 * scale
     
-    hot_offset = 10 * scale   
-    cold_offset = 15 * scale  
+    # Výměníky posunuty těsně pod víka válců
+    hot_offset = 5 * scale   
+    cold_offset = 5 * scale  
     hot_h = 30 * scale       
     cold_body_h = 30 * scale 
 
@@ -405,7 +406,7 @@ def generate_alpha_engine_animation(alpha_deg):
     trans_H = geom_trans_H + ax.transData
     trans_C = geom_trans_C + ax.transData
 
-    # OHŘÍVAČ (červený blok se zkosenými rohy)
+    # OHŘÍVAČ (červený blok se zkosenými rohy, posunutý nahoru)
     h_top_y = d_top - hot_offset
     h_bot_y = h_top_y - hot_h
     h_dx = 2.5 * scale 
@@ -422,7 +423,7 @@ def generate_alpha_engine_animation(alpha_deg):
     hot_block = patches.Polygon(h_poly_pts, facecolor=c_hot, edgecolor=c_line, lw=lw, transform=trans_H, zorder=1)
     ax.add_patch(hot_block)
 
-    # CHLADIČ (jeden souvislý polygon, žebra přesně zarovnaná s tělem nahoře i dole)
+    # CHLADIČ (jeden souvislý polygon, zarovnaná žebra, posunutý nahoru)
     c_top_y = d_top - cold_offset
     c_bot_y = c_top_y - cold_body_h
     body_w = 4 * scale
@@ -518,7 +519,7 @@ def generate_alpha_engine_animation(alpha_deg):
     ax.plot([x_R_C, x_R_C, reg_x1], [y_R_C, pipe_y_top, pipe_y_top], color=c_line, lw=lw, zorder=5)
     ax.plot([x_L_C, x_L_C, reg_x1], [y_L_C, pipe_y_bot, pipe_y_bot], color=c_line, lw=lw, zorder=5)
 
-    # Zvětšený regenerátor
+    # Regenerátor
     regen = patches.FancyBboxPatch((reg_x0, pipe_y_bot - 6*scale), reg_w, h_pipe_w + 12*scale, boxstyle=f"round,pad={3}", facecolor='white', edgecolor=c_line, hatch='xxxx', lw=lw, zorder=6)
     ax.add_patch(regen)
 
@@ -550,11 +551,11 @@ def generate_alpha_engine_animation(alpha_deg):
     ax.add_patch(pist_H_poly)
     ax.add_patch(pist_C_poly)
 
-    # Ojnice jsou v popředí přes píst (zorder=7)
+    # Ojnice jsou v popředí přes píst
     rod_H, = ax.plot([], [], color=c_line, lw=3, zorder=7)
     rod_C, = ax.plot([], [], color=c_line, lw=3, zorder=7)
     
-    # Klouby ojnice (zorder=8 a 9)
+    # Klouby ojnice
     pist_pin_H_outer = patches.Circle((0,0), 2.5*scale, facecolor='black', edgecolor=c_line, lw=1, zorder=8)
     pist_pin_H_inner = patches.Circle((0,0), 1.2*scale, facecolor='#666666', edgecolor='none', zorder=9)
     pist_pin_C_outer = patches.Circle((0,0), 2.5*scale, facecolor='black', edgecolor=c_line, lw=1, zorder=8)
