@@ -1060,7 +1060,7 @@ with col_left:
             <h4 style="color: #7f8c8d; font-size: 1.1rem; font-weight: 400; margin-top: 5px; text-align: center;">
                 {t("s polytropickými ději", "with polytropic processes")}
             </h4>
-            <div style="height: 3px; width: 60px; background-color: #FF4B4B; margin: 10px auto 0 auto; border-radius: 2px;"></div>
+            <div style="height: 3px; width: 60px; background-color: #FF4B4B; margin: 5px auto 0 auto; border-radius: 2px;"></div>
         </div>
     """, unsafe_allow_html=True)
 
