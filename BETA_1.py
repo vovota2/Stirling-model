@@ -1057,7 +1057,7 @@ with col_left:
             <h2 style="color: #2c3e50; font-size: 2.4rem; font-weight: 700; margin-bottom: 0px; ">
                 {t(f"Model oběhu Stirlingova motoru ({lp['mod_type']})", f"Stirling Engine Cycle Model ({lp['mod_type']})")}
             </h2>
-            <h4 style="color: #7f8c8d; font-size: 1.1rem; font-weight: 400; margin-top: 5px; text-align: center;">
+            <h4 style="color: #7f8c8d; font-size: 1.1rem; font-weight: 400; margin-top: 5px;">
                 {t("s polytropickými ději", "with polytropic processes")}
             </h4>
             <div style="height: 3px; width: 100px; background-color: #FF4B4B; margin: 10px auto 0 auto; border-radius: 2px;"></div>
