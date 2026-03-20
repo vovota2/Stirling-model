@@ -1054,7 +1054,7 @@ col_left, col_right = st.columns([3.5, 1.5])
 with col_left:
     st.markdown(f"""
         <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; margin-bottom: 30px;">
-            <h2 style="color: #2c3e50; font-size: 2.4rem; font-weight: 700; margin-bottom: 0px; text-align: center;">
+            <h2 style="color: #2c3e50; font-size: 2.4rem; font-weight: 700; margin-bottom: 0px; ">
                 {t(f"Model oběhu Stirlingova motoru ({lp['mod_type']})", f"Stirling Engine Cycle Model ({lp['mod_type']})")}
             </h2>
             <h4 style="color: #7f8c8d; font-size: 1.1rem; font-weight: 400; margin-top: 5px; text-align: center;">
