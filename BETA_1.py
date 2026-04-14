@@ -32,9 +32,9 @@ else:
 # --- KONFIGURACE STRÁNKY ---
 st.set_page_config(page_title="Stirling Cycle Model", layout="wide")
 
-# =============================================================================
+# ============================================================================
 # JAZYKOVÝ PŘEPÍNAČ A FUNKCE PŘEKLADU
-# =============================================================================
+# ============================================================================
 lang_choice = st.sidebar.radio("Lang", ["EN", "CZ"], horizontal=True, label_visibility="collapsed")
 is_cz = lang_choice == "CZ"
 
