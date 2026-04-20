@@ -1228,25 +1228,39 @@ with tab3:
     st.plotly_chart(fig, use_container_width=True)
 
 with tab4:
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(x=res['phi_deg'], y=res['dQ_R_curve'], mode='lines', line=dict(color='black', width=2), showlegend=False))
-    valMax, valMin = np.max(res['dQ_R_curve']), np.min(res['dQ_R_curve'])
-    fig.add_hline(y=valMax, line_dash="dot", line_color="black")
-    fig.add_hline(y=valMin, line_dash="dot", line_color="black")
-    fig.add_annotation(x=225, y=valMin, ax=225, ay=valMax, xref="x", yref="y", axref="x", ayref="y", showarrow=True, arrowhead=2, arrowside="end+start", arrowcolor="red", arrowwidth=2)
-    fig.add_annotation(x=245, y=(valMax+valMin)/2, text=f"Q<sub>R</sub> = {res['Q_reg_val']:.1f} J", showarrow=False, font=dict(color="red", size=14, weight="bold"), xanchor="left")
-    fig.update_layout(title=dict(text=t("Průběh regenerovaného tepla Q<sub>R</sub>", "Regenerated heat Q<sub>R</sub> profile"), x=0.5, xanchor='center', yanchor='top'), xaxis_title="φ (°)", yaxis_title="Q<sub>R</sub> (J)", height=500, **layout_style)
-    fig.update_xaxes(tickmode='linear', tick0=0, dtick=45)
-    st.plotly_chart(fig, use_container_width=True)
+    # --- 1. Graf kumulovaného tepla v Joulech (Původní) ---
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=res['phi_deg'], y=res['dQ_R_curve'], mode='lines', line=dict(color='black', width=2), showlegend=False))
+    valMax, valMin = np.max(res['dQ_R_curve']), np.min(res['dQ_R_curve'])
+    fig.add_hline(y=valMax, line_dash="dot", line_color="black")
+    fig.add_hline(y=valMin, line_dash="dot", line_color="black")
+    fig.add_annotation(x=225, y=valMin, ax=225, ay=valMax, xref="x", yref="y", axref="x", ayref="y", showarrow=True, arrowhead=2, arrowside="end+start", arrowcolor="red", arrowwidth=2)
+    fig.add_annotation(x=245, y=(valMax+valMin)/2, text=f"Q<sub>R</sub> = {res['Q_reg_val']:.1f} J", showarrow=False, font=dict(color="red", size=14, weight="bold"), xanchor="left")
+    fig.update_layout(title=dict(text=t("Průběh regenerovaného tepla Q<sub>R</sub>", "Regenerated heat Q<sub>R</sub> profile"), x=0.5, xanchor='center', yanchor='top'), xaxis_title="φ (°)", yaxis_title="Q<sub>R</sub> (J)", height=500, **layout_style)
+    fig.update_xaxes(tickmode='linear', tick0=0, dtick=45)
+    st.plotly_chart(fig, use_container_width=True)
 
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(x=res['phi_deg'], y=res['p_real'] * res['dVT_dphi'], fill='tozeroy', mode='lines', line=dict(color='red', width=1), name=t('Teplá (p·dV<sub>T</sub>/dφ)', 'Hot (p·dV<sub>T</sub>/dφ)')))
-    fig.add_trace(go.Scatter(x=res['phi_deg'], y=res['p_real'] * res['dVS_dphi'], fill='tozeroy', mode='lines', line=dict(color='blue', width=1), name=t('Studená (p·dV<sub>S</sub>/dφ)', 'Cold (p·dV<sub>S</sub>/dφ)')))
-    fig.add_trace(go.Scatter(x=res['phi_deg'], y=(res['p_real'] * res['dVT_dphi']) + (res['p_real'] * res['dVS_dphi']), mode='lines', line=dict(color='black', width=3, dash='dash'), name=t('Celkem (p·dV/dφ)', 'Total (p·dV/dφ)')))
-    fig.add_hline(y=0, line_color='black', line_width=1)
-    fig.update_layout(title=dict(text=t("Okamžitá práce (p · dV)", "Instantaneous Work (p · dV)"), x=0.5, xanchor='center', yanchor='top'), xaxis_title="φ (°)", yaxis_title="dW/dφ (J/rad)", height=500, **layout_style)
-    fig.update_xaxes(tickmode='linear', tick0=0, dtick=45)
-    st.plotly_chart(fig, use_container_width=True)
+    # --- 2. NOVÝ Graf: Okamžitý tepelný tok regenerátorem ve Wattech ---
+    # Okamžitý výkon P = dQ/dt = (dQ/dφ) * (dφ/dt) = (dQ/dφ) * 2πf
+    omega = 2 * np.pi * lp['f']
+    P_reg_W = np.gradient(res['dQ_R_curve'], res['phi']) * omega
+
+    fig2 = go.Figure()
+    fig2.add_trace(go.Scatter(x=res['phi_deg'], y=P_reg_W, fill='tozeroy', mode='lines', line=dict(color='darkorange', width=2), name=t('Tepelný tok P<sub>R</sub>', 'Heat flow P<sub>R</sub>')))
+    fig2.add_hline(y=0, line_color='black', line_width=1)
+    fig2.update_layout(title=dict(text=t("Okamžitý tepelný tok regenerátorem P<sub>R</sub>", "Instantaneous Regenerator Heat Flow P<sub>R</sub>"), x=0.5, xanchor='center', yanchor='top'), xaxis_title="φ (°)", yaxis_title="P<sub>R</sub> (W)", height=500, **layout_style)
+    fig2.update_xaxes(tickmode='linear', tick0=0, dtick=45)
+    st.plotly_chart(fig2, use_container_width=True)
+
+    # --- 3. Graf okamžité práce (Původní) ---
+    fig3 = go.Figure()
+    fig3.add_trace(go.Scatter(x=res['phi_deg'], y=res['p_real'] * res['dVT_dphi'], fill='tozeroy', mode='lines', line=dict(color='red', width=1), name=t('Teplá (p·dV<sub>T</sub>/dφ)', 'Hot (p·dV<sub>T</sub>/dφ)')))
+    fig3.add_trace(go.Scatter(x=res['phi_deg'], y=res['p_real'] * res['dVS_dphi'], fill='tozeroy', mode='lines', line=dict(color='blue', width=1), name=t('Studená (p·dV<sub>S</sub>/dφ)', 'Cold (p·dV<sub>S</sub>/dφ)')))
+    fig3.add_trace(go.Scatter(x=res['phi_deg'], y=(res['p_real'] * res['dVT_dphi']) + (res['p_real'] * res['dVS_dphi']), mode='lines', line=dict(color='black', width=3, dash='dash'), name=t('Celkem (p·dV/dφ)', 'Total (p·dV/dφ)')))
+    fig3.add_hline(y=0, line_color='black', line_width=1)
+    fig3.update_layout(title=dict(text=t("Okamžitá práce (p · dV)", "Instantaneous Work (p · dV)"), x=0.5, xanchor='center', yanchor='top'), xaxis_title="φ (°)", yaxis_title="dW/dφ (J/rad)", height=500, **layout_style)
+    fig3.update_xaxes(tickmode='linear', tick0=0, dtick=45)
+    st.plotly_chart(fig3, use_container_width=True)
 
 with tab5:
     fig = go.Figure()
