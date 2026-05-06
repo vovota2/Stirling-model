@@ -1671,7 +1671,7 @@ with tab7:
     bbox_style_red = dict(boxstyle="round,pad=0.4", fc="white", ec="#d32f2f", alpha=0.9)
     bbox_style_mag = dict(boxstyle="round,pad=0.4", fc="white", ec=c_read, alpha=0.9)
 
-    formula_str = r"$P_{skutečný} = B_n \cdot p_{stř} \cdot V_{SZ} \cdot f$" if is_cz else r"$P_{actual} = B_n \cdot p_{mean} \cdot V_{SW} \cdot f$"
+    formula_str = r"$P_{skutecny} = B_n \cdot p_{str} \cdot V_{SZ} \cdot f$" if is_cz else r"$P_{actual} = B_n \cdot p_{mean} \cdot V_{SW} \cdot f$"
     ax_b.text(615, 0.229, formula_str, fontsize=13, va='bottom', bbox=dict(facecolor='white', alpha=0.9, edgecolor='#aaa', boxstyle='round,pad=0.5'))
 
     T_plot_star = np.clip(T_actual, 600, 1200)
