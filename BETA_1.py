@@ -1737,6 +1737,13 @@ with col_f1:
           "This software is distributed under the **GNU GPLv3** license. Source code is freely available for modifications and study purposes.")
     )
     st.markdown(f"🔗 [GitHub Repository](https://github.com/vovota2/Stirling-model)")
+    
+    
+    st.caption(
+        t("✨ Vytvořeno s programátorskou asistencí umělé inteligence (Google Gemini).", 
+          "✨ Created with the programming assistance of AI (Google Gemini).")
+    )
+
 # --- ZOBRAZENÍ POČÍTADLA VIEWS (AŽ PO INTERAKCI UŽIVATELE) ---
     if st.session_state.get('pocet_nacteni', 0) > 1:
         if 'badge_b64' not in st.session_state:
