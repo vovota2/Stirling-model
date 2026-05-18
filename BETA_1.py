@@ -1671,7 +1671,7 @@ with tab7:
     bbox_style_red = dict(boxstyle="round,pad=0.4", fc="white", ec="#d32f2f", alpha=0.9)
     bbox_style_mag = dict(boxstyle="round,pad=0.4", fc="white", ec=c_read, alpha=0.9)
 
-    formula_str = r"$P_{skutecny} = B_n \cdot p_{str} \cdot V_{SZ} \cdot f$" if is_cz else r"$P_{actual} = B_n \cdot p_{mean} \cdot V_{SW} \cdot f$"
+    formula_str = r"$P_{skutecny} = B_n \cdot {p}_{str} \cdot V_{SZ} \cdot f$" if is_cz else r"$P_{actual} = B_n \cdot {p}_{mean} \cdot V_{SW} \cdot f$"
     ax_b.text(615, 0.229, formula_str, fontsize=13, va='bottom', bbox=dict(facecolor='white', alpha=0.9, edgecolor='#aaa', boxstyle='round,pad=0.5'))
 
     T_plot_star = np.clip(T_actual, 600, 1200)
@@ -1712,8 +1712,8 @@ with tab7:
 
     ax_b.set_xlim(600, 1200)
     ax_b.set_ylim(0, 0.26)
-    ax_b.set_xlabel(t('Teplota ohřívače $T_T$ [K]', 'Heater temperature $T_H$ [K]'), fontsize=11, fontweight='bold')
-    ax_b.set_ylabel(t('Bealeovo číslo $B_n$ [-]', 'Beale number $B_n$ [-]'), fontsize=11, fontweight='bold')
+    ax_b.set_xlabel(t('Teplota ohřívače $T_T$ [K]', 'Heater temperature $T_H$ [K]'), fontsize=11)
+    ax_b.set_ylabel(t('Bealeovo číslo $B_n$ [-]', 'Beale number $B_n$ [-]'), fontsize=11)
     ax_b.set_title(t(r'Odečtení Bealeova čísla na základě teploty a referenční křivky', r'Derivation of the Beale number based on temperature and reference curve'), fontsize=14, pad=15)
 
     fig_beale.tight_layout()
